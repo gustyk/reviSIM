@@ -26,11 +26,11 @@ routing_opt = 1
 picker_num = 1
 cart_opt = 1
 
-for trigger_opt in [1]:
-    for batching_opt in range(1,2):
-        for routing_opt in range(1,2):
-            for picker_num in range(1,2):
-                for cart_opt in range(1,2):
+for trigger_opt in [1,2,3,4]:
+    for batching_opt in [1,3]:
+        for routing_opt in [1,3]:
+            for picker_num in range(1,13):
+                for cart_opt in [1,3]:
                     cart_capacity = 0
                     if cart_opt == 1:
                         cart_capacity = 50
