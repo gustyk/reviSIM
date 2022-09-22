@@ -1,5 +1,6 @@
 import pandas as pd
 from datetime import timedelta
+import copy
 
 class pooling_triggers:
     def __init__(self, opt, env, picker, batching, routing, cart_capacity, delta):
@@ -24,6 +25,7 @@ class pooling_triggers:
         self.total = 0
         self.urgentCount = 0
         self.maxUrgent = 2
+        self.current_pool = [[[], 0]]
  
     def run_simpy(self, fn):
         # Assign order file to process
@@ -31,6 +33,9 @@ class pooling_triggers:
         # Assign data from order file to list
         self.created_time = fn['Created Time'].to_list()
         self.total_item = fn['Total Item'].to_list()
+        self.positions = fn['Position'].to_list()
+        # Assign Initial Time
+        self.initial_time = self.created_time[0].replace(minute=0, second=0)
         # Loop until all orders in the file is processed
         while self.currentRow < len(self.created_time):
             # Calculate current timestamp
@@ -46,7 +51,9 @@ class pooling_triggers:
             
             # Add order item count to total item
             self.total += self.total_item[self.currentRow]
-            
+            self.current_pool[0][1] += self.total_item[self.currentRow]
+            self.current_pool[0][0] += self.positions[self.currentRow]
+
             # Deleting finished picker list
             if len(self.picker_list) != 0:
                 if self.picker_list[0] <= time_now:
@@ -54,6 +61,7 @@ class pooling_triggers:
             
             # Trigger processing
             if getattr(self, 'opt_' + str(self.opt))():
+                self.current_pool = [[[], 0]]
                 # if self.total > self.cart_capacity:
                 #     self.currentRow -= 1
                 # select orders to batch
@@ -113,6 +121,9 @@ class pooling_triggers:
         # Assign data from order file to list
         self.created_time = fn['Created Time'].to_list()
         self.total_item = fn['Total Item'].to_list()
+        self.positions = fn['Position'].to_list()
+        # Assign Initial Time
+        self.initial_time = self.created_time[0].replace(minute=0, second=0)
         # Loop until all orders in the file is processed
         while self.currentRow < len(self.created_time):
             # Calculate current timestamp
@@ -128,7 +139,9 @@ class pooling_triggers:
             
             # Add order item count to total item
             self.total += self.total_item[self.currentRow]
-            
+            self.current_pool[0][1] += self.total_item[self.currentRow]
+            self.current_pool[0][0] += self.positions[self.currentRow]
+
             # Deleting finished picker list
             if len(self.picker_list) != 0:
                 if self.picker_list[0] <= time_now:
@@ -136,6 +149,7 @@ class pooling_triggers:
             
             # Trigger processing
             if getattr(self, 'opt_' + str(self.opt))():
+                self.current_pool = [[[], 0]]
                 # if self.total > self.cart_capacity:
                 #     self.currentRow -= 1
                 # select orders to batch
@@ -203,7 +217,22 @@ class pooling_triggers:
         return (self.total >= self.cart_capacity and (self.currentRow - 1) - self.startRow != 0) or self.currentRow == len(self.created_time)
     def opt_5(self):
         # Urgent First + Max Picker
+        # check urgent order
+        self.check_urgent()
         return (self.urgentCount >= self.maxUrgent and (len(self.picker_list) < self.picker and self.currentRow - self.startRow != 0)) or self.currentRow == len(self.created_time)
     def opt_6(self):
         # Urgent First + Max Cart
+        # check urgent order
+        self.check_urgent()
         return (self.urgentCount >= self.maxUrgent and (self.total >= self.cart_capacity and (self.currentRow - 1) - self.startRow != 0)) or self.currentRow == len(self.created_time)
+
+    def check_urgent(self):
+        # check urgent order
+        to_routing = copy.deepcopy(self.current_pool)
+        self.routing.run(to_routing)
+        compl_time = self.routing.count_completion_time()
+        all_compl_time = sum(c.seconds for c in compl_time)
+        self.urgentCount = 0
+        for order_due in self.fn.iloc[self.startRow:self.currentRow]['Due Time'].to_list():
+            if (self.initial_time + timedelta(seconds=(self.env.now + all_compl_time))) > order_due:
+                self.urgentCount += 1
