@@ -16,6 +16,8 @@ class pooling_triggers:
         self.onTime = 0
         self.fileCount = 0
         self.completionTime = timedelta(seconds=0)
+        self.turnOverTime = timedelta(seconds=0)
+        self.lateCount = 0
         self.startRow = 0
         self.currentRow = 0
         self.time_limit = delta
@@ -169,11 +171,11 @@ class pooling_triggers:
                 self.fileCount += fCount
                 # Processing routing variation
                 self.routing.run(collected_batches)
-                calculated_routing = self.routing.count_completion_time()
+                calculated_compl_time = self.routing.count_completion_time()
                 
                 # Counting total completion time
                 finish_time = list()
-                for fl in calculated_routing:
+                for idx, fl in enumerate(calculated_compl_time):
                     self.completionTime += fl
                     
                     if (len(self.picker_list) == self.picker):
@@ -186,6 +188,13 @@ class pooling_triggers:
                     self.picker_list.sort()
                     finish_time.append(finTime)
                 
+                    # Counting Turn Over Time
+                    for order in raw_batch[idx].to_numpy():
+                        tov_time = (finTime - order[0])
+                        self.turnOverTime += tov_time
+                        if finTime > order[2]:
+                            self.lateCount += 1
+
                 # Counting on time delivery
                 finish_index = 0
                 while finish_index < len(finish_time):

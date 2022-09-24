@@ -40,9 +40,10 @@ for trigger_opt in [1,2,3,4]:
                         cart_capacity = 200
 
                     totalCompletionTime = list()
+                    totalTurnOverTime = list()
                     averagePickerUtility = list()
                     averageCartUtility = list()
-                    onTimeDelivery = list()
+                    lateDelivery = list()
 
                     for fn in fname:    
                         delta = timedelta(minutes=12).seconds
@@ -64,6 +65,8 @@ for trigger_opt in [1,2,3,4]:
 
                         # Listing total completion time
                         totalCompletionTime.append(trigger.completionTime)
+                        # Listing total Turonver time
+                        totalTurnOverTime.append(trigger.turnOverTime)
                         # Counting and listing average picker utility
                         avePickerUtility = round(trigger.completionTime/timedelta(hours=8), 2)
                         averagePickerUtility.append(avePickerUtility)
@@ -71,16 +74,18 @@ for trigger_opt in [1,2,3,4]:
                         aveCartUtility = round(trigger.cartUtility/trigger.fileCount, 2)
                         averageCartUtility.append(aveCartUtility)
                         # Listing total on time delivery
-                        onTimeDelivery.append(trigger.onTime)
+                        lateDelivery.append(trigger.lateCount)
 
                     # Counting average of total completion time
                     totalCompletionTime = gf.average_tct(totalCompletionTime)
+                    # Counting average of turnover time
+                    totalTurnOverTime = gf.average_tct(totalTurnOverTime)
                     # Counting average of average picker utility
                     averagePickerUtility = gf.count_average(averagePickerUtility)
                     # Counting average of average cart utility
                     averageCartUtility = gf.count_average(averageCartUtility)
                     # Counting average of on time delivery
-                    onTimeDelivery = gf.count_average(onTimeDelivery)
+                    lateDelivery = gf.count_average(lateDelivery)
 
                     # Put result on file
                     result = pd.DataFrame({
