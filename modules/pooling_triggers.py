@@ -30,18 +30,21 @@ class pooling_triggers:
         self.current_pool = [[[], 0]]
         self.num_triggered = 0
         self.processed_item = 0
+        self.limitExceeded = False
  
-    def run_simpy(self, fn):
+    def run_simpy(self, fn, limit):
         # Assign order file to process
         self.fn = fn
+        # Assign simulation limit
+        self.limit = limit
         # Assign data from order file to list
         self.created_time = fn['Created Time'].to_list()
         self.total_item = fn['Total Item'].to_list()
         self.positions = fn['Position'].to_list()
         # Assign Initial Time
         self.initial_time = self.created_time[0].replace(minute=0, second=0)
-        # Loop until all orders in the file is processed
-        while self.currentRow < len(self.created_time):
+        # Loop until all orders in the file is processed or reached time limit
+        while self.currentRow < len(self.created_time) and self.env.now < self.limit and not self.limitExceeded:
             # Calculate current timestamp
             time_now = self.created_time[self.currentRow]
             # Calculate next time delta
@@ -53,10 +56,15 @@ class pooling_triggers:
             # Time flow to the current order record
             yield self.env.timeout(next_delta)
             
-            # Add order item count to total item
-            self.total += self.total_item[self.currentRow]
-            self.current_pool[0][1] += self.total_item[self.currentRow]
-            self.current_pool[0][0] += self.positions[self.currentRow]
+            if (self.env.now <= self.limit):
+            # if not past time limit
+                # Add order item count to total item
+                self.total += self.total_item[self.currentRow]
+                self.current_pool[0][1] += self.total_item[self.currentRow]
+                self.current_pool[0][0] += self.positions[self.currentRow]
+            else:
+                time_now -= timedelta(seconds=(self.env.now - self.limit))
+                self.env.now = self.limit
 
             # Deleting finished picker list
             if len(self.picker_list) != 0:
@@ -64,7 +72,8 @@ class pooling_triggers:
                     self.picker_list.pop(0)
             
             # Trigger processing
-            if getattr(self, 'opt_' + str(self.opt))():
+            if getattr(self, 'opt_' + str(self.opt))() or self.env.now >= self.limit or self.limitExceeded:
+                self.num_triggered += 1
                 self.current_pool = [[[], 0]]
                 # if self.total > self.cart_capacity:
                 #     self.currentRow -= 1
@@ -77,41 +86,50 @@ class pooling_triggers:
                 # Counting cart utility
                 cartUti = 0
                 fCount = 0
-                for file in collected_batches:
-                    cartUti += round(file[1]/self.cart_capacity, 2)
+                for batch in collected_batches:
+                    self.processed_item += batch[1]
+                    cartUti += round(batch[1]/self.cart_capacity, 2)
                     cartUti = round(cartUti, 2)
                     fCount += 1
-                self.cartUtility += round(cartUti, 2)
+                self.cartUtility += round(cartUti/len(collected_batches), 2)
                 self.fileCount += fCount
                 # Processing routing variation
-                self.routing.run(collected_batches)
-                calculated_routing = self.routing.count_completion_time()
+                self.routing.run(copy.deepcopy(collected_batches))
+                calculated_compl_time = self.routing.count_completion_time()
                 
                 # Counting total completion time
-                finish_time = list()
-                for fl in calculated_routing:
-                    self.completionTime += fl
+                for idx, fl in enumerate(calculated_compl_time):
+                    # continue process if not limit exceeded
+                    if (not self.limitExceeded):                        
+                        if (len(self.picker_list) == self.picker):
+                            # If all picker busy, finish time added to the soonest picker
+                            finTime = self.picker_list[0] + fl + timedelta(minutes=1)
+                        else:
+                            # else assign new picker
+                            finTime = startTime + fl + timedelta(minutes=1)
+
+                        # if the expected finish time more than time limit
+                        # mark as limit exceeded to halt further processing
+                        if finTime > (self.initial_time + timedelta(seconds=self.limit)):
+                            self.limitExceeded = True
+                        else:
+                            self.completionTime += fl
+
+                            if (len(self.picker_list) == self.picker):
+                                # update soonest picker finish time
+                                self.picker_list[0] = finTime
+                            else:
+                                # assign new picker
+                                self.picker_list.append(finTime)
+                            self.picker_list.sort()
                     
-                    if (len(self.picker_list) == self.picker):
-                        # If all picker busy, finish time added to the soonest picker
-                        finTime = self.picker_list[0] + fl + timedelta(minutes=1)
-                    else:
-                        # else assign new picker
-                        finTime = startTime + fl + timedelta(minutes=1)
-                    self.picker_list.append(finTime)
-                    self.picker_list.sort()
-                    finish_time.append(finTime)
-                
-                # Counting on time delivery
-                finish_index = 0
-                while finish_index < len(finish_time):
-                    dueTime = raw_batch[finish_index]['Due Time'].to_list()
-                    due_index = 0
-                    while due_index < len(dueTime):
-                        if finish_time[finish_index] < dueTime[due_index]:
-                            self.onTime += 1
-                        due_index += 1
-                    finish_index += 1
+                            # Counting Turn Over Time
+                            for order in raw_batch[idx].to_numpy():
+                                tov_time = (finTime - order[0])
+                                self.turnOverTime += tov_time
+                                if finTime > order[2]:
+                                    self.lateCount += 1
+
                 # Looping condition
                 self.startRow = self.currentRow
                 self.time_limit += self.delta
@@ -131,7 +149,7 @@ class pooling_triggers:
         # Assign Initial Time
         self.initial_time = self.created_time[0].replace(minute=0, second=0)
         # Loop until all orders in the file is processed or reached time limit
-        while self.currentRow < len(self.created_time) and self.env.now < self.limit:
+        while self.currentRow < len(self.created_time) and self.env.now < self.limit and not self.limitExceeded:
             # Calculate current timestamp
             time_now = self.created_time[self.currentRow]
             # Calculate next time delta
@@ -159,7 +177,7 @@ class pooling_triggers:
                     self.picker_list.pop(0)
             
             # Trigger processing
-            if getattr(self, 'opt_' + str(self.opt))() or self.env.now >= self.limit:
+            if getattr(self, 'opt_' + str(self.opt))() or self.env.now >= self.limit or self.limitExceeded:
                 self.num_triggered += 1
                 self.current_pool = [[[], 0]]
                 # if self.total > self.cart_capacity:
@@ -181,41 +199,42 @@ class pooling_triggers:
                 self.cartUtility += round(cartUti/len(collected_batches), 2)
                 self.fileCount += fCount
                 # Processing routing variation
-                self.routing.run(collected_batches)
+                self.routing.run(copy.deepcopy(collected_batches))
                 calculated_compl_time = self.routing.count_completion_time()
                 
                 # Counting total completion time
-                finish_time = list()
                 for idx, fl in enumerate(calculated_compl_time):
-                    self.completionTime += fl
-                    
-                    if (len(self.picker_list) == self.picker):
-                        # If all picker busy, finish time added to the soonest picker
-                        finTime = self.picker_list[0] + fl + timedelta(minutes=1)
-                    else:
-                        # else assign new picker
-                        finTime = startTime + fl + timedelta(minutes=1)
-                    self.picker_list.append(finTime)
-                    self.picker_list.sort()
-                    finish_time.append(finTime)
-                
-                    # Counting Turn Over Time
-                    for order in raw_batch[idx].to_numpy():
-                        tov_time = (finTime - order[0])
-                        self.turnOverTime += tov_time
-                        if finTime > order[2]:
-                            self.lateCount += 1
+                    # continue process if not limit exceeded
+                    if (not self.limitExceeded):                        
+                        if (len(self.picker_list) == self.picker):
+                            # If all picker busy, finish time added to the soonest picker
+                            finTime = self.picker_list[0] + fl + timedelta(minutes=1)
+                        else:
+                            # else assign new picker
+                            finTime = startTime + fl + timedelta(minutes=1)
 
-                # Counting on time delivery
-                finish_index = 0
-                while finish_index < len(finish_time):
-                    dueTime = raw_batch[finish_index]['Due Time'].to_list()
-                    due_index = 0
-                    while due_index < len(dueTime):
-                        if finish_time[finish_index] < dueTime[due_index]:
-                            self.onTime += 1
-                        due_index += 1
-                    finish_index += 1
+                        # if the expected finish time more than time limit
+                        # mark as limit exceeded to halt further processing
+                        if finTime > (self.initial_time + timedelta(seconds=self.limit)):
+                            self.limitExceeded = True
+                        else:
+                            self.completionTime += fl
+
+                            if (len(self.picker_list) == self.picker):
+                                # update soonest picker finish time
+                                self.picker_list[0] = finTime
+                            else:
+                                # assign new picker
+                                self.picker_list.append(finTime)
+                            self.picker_list.sort()
+                    
+                            # Counting Turn Over Time
+                            for order in raw_batch[idx].to_numpy():
+                                tov_time = (finTime - order[0])
+                                self.turnOverTime += tov_time
+                                if finTime > order[2]:
+                                    self.lateCount += 1
+
                 # Looping condition
                 self.startRow = self.currentRow
                 self.time_limit += self.delta

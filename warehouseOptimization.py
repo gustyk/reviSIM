@@ -28,11 +28,11 @@ routing_opt = 1
 picker_num = 1
 cart_opt = 1
 
-for trigger_opt in [1,2,3,4]:
-    for batching_opt in [1,3]:
-        for routing_opt in [1,3]:
-            for picker_num in range(1,13):
-                for cart_opt in [1,3]:
+for trigger_opt in [1]:
+    for batching_opt in [1]:
+        for routing_opt in [1]:
+            for picker_num in [3]:
+                for cart_opt in [1]:
                     cart_capacity = 0
                     if cart_opt == 1:
                         cart_capacity = 50
@@ -66,7 +66,7 @@ for trigger_opt in [1,2,3,4]:
                         # env.run(until=limit)
 
                         # Listing total order
-                        totalOrder.append(trigger.currentRow)
+                        totalOrder.append(trigger.currentRow - 1)
                         # Listing total total time
                         totalItemPicked.append(trigger.processed_item)
                         # Listing total completion time
@@ -74,7 +74,7 @@ for trigger_opt in [1,2,3,4]:
                         # Listing total Turonver time
                         totalTurnOverTime.append(trigger.turnOverTime)
                         # Counting and listing average picker utility
-                        avePickerUtility = round(trigger.completionTime/timedelta(hours=8), 2)
+                        avePickerUtility = round(trigger.completionTime/(timedelta(hours=8)*picker_num), 2)
                         averagePickerUtility.append(avePickerUtility)
                         # Counting & listing average cart utility
                         aveCartUtility = round(trigger.cartUtility/trigger.num_triggered, 2)
