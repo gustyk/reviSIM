@@ -89,14 +89,20 @@ for trigger_opt in [1,2,3,4]:
 
                     # Put result on file
                     result = pd.DataFrame({
-                        'Order File': orderFile,
-                        'Total Order': totalOrder,
-                        'Total Completion Time': totalCompletionTime,
-                        'Total Item Picked': totalItemPicked,
-                        'Average Picker Utility': averagePickerUtility,
-                        'Average Cart Utility': averageCartUtility,
-                        'On Time Delivery': onTimeDelivery
-                        }, columns = ['Order File', 'Total Order', 'Total Completion Time', 'Total Item Picked', 'Average Picker Utility', 'Average Cart Utility', 'On Time Delivery'])
+                        'OrderFile': orderFile,
+                        'TriggerMethod': [trigger_opt] * 11,
+                        'BatchingMethod': [batching_opt] * 11,
+                        'RoutingPolicy': [routing_opt] * 11,
+                        'NumOfPickers': [picker_num] * 11,
+                        'CartCapacity': [cart_capacity] * 11,
+                        'TotalOrder': totalOrder,
+                        'CompletionTime': totalCompletionTime,
+                        'TurnOverTime': totalTurnOverTime,
+                        'TotalItemPicked': totalItemPicked,
+                        'AvgPickerUtil': averagePickerUtility,
+                        'AvgCartUtil': averageCartUtility,
+                        'NumOfLate': lateDelivery
+                        }, columns = ['OrderFile','TriggerMethod','BatchingMethod','RoutingPolicy','NumOfPickers','CartCapacity','TotalOrder','CompletionTime','TurnOverTime','TotalItemPicked','AvgPickerUtil','AvgCartUtil','NumOfLate'])
                     filename = str(trigger_opt) + str(batching_opt) + str(routing_opt) + str(picker_num) + str(cart_opt) + '.csv'
                     result.to_csv('result/test' + filename, index = False)
                     print(filename)
