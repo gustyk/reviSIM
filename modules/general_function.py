@@ -103,7 +103,7 @@ def count_total_item(filelist):
     totalItemPicked = list()
     for fn in filelist:
         orderList = fn['Total Item'].to_list()
-        totalItemPicked.append(len(orderList))
+        totalItemPicked.append(sum(orderList))
     totalItemPicked = count_average(totalItemPicked)
     return totalItemPicked
 
