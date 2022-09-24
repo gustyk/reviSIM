@@ -28,6 +28,8 @@ class pooling_triggers:
         self.urgentCount = 0
         self.maxUrgent = 2
         self.current_pool = [[[], 0]]
+        self.num_triggered = 0
+        self.processed_item = 0
  
     def run_simpy(self, fn):
         # Assign order file to process
@@ -117,17 +119,19 @@ class pooling_triggers:
             # Advance row to check
             self.currentRow += 1
     
-    def run(self, fn):
+    def run(self, fn, limit):
         # Assign order file to process
         self.fn = fn
+        # Assign simulation limit
+        self.limit = limit
         # Assign data from order file to list
         self.created_time = fn['Created Time'].to_list()
         self.total_item = fn['Total Item'].to_list()
         self.positions = fn['Position'].to_list()
         # Assign Initial Time
         self.initial_time = self.created_time[0].replace(minute=0, second=0)
-        # Loop until all orders in the file is processed
-        while self.currentRow < len(self.created_time):
+        # Loop until all orders in the file is processed or reached time limit
+        while self.currentRow < len(self.created_time) and self.env.now < self.limit:
             # Calculate current timestamp
             time_now = self.created_time[self.currentRow]
             # Calculate next time delta
@@ -139,10 +143,15 @@ class pooling_triggers:
             # Time flow to the current order record
             self.env.now += next_delta
             
-            # Add order item count to total item
-            self.total += self.total_item[self.currentRow]
-            self.current_pool[0][1] += self.total_item[self.currentRow]
-            self.current_pool[0][0] += self.positions[self.currentRow]
+            if (self.env.now <= self.limit):
+            # if not past time limit
+                # Add order item count to total item
+                self.total += self.total_item[self.currentRow]
+                self.current_pool[0][1] += self.total_item[self.currentRow]
+                self.current_pool[0][0] += self.positions[self.currentRow]
+            else:
+                time_now -= timedelta(seconds=(self.env.now - self.limit))
+                self.env.now = self.limit
 
             # Deleting finished picker list
             if len(self.picker_list) != 0:
@@ -150,7 +159,8 @@ class pooling_triggers:
                     self.picker_list.pop(0)
             
             # Trigger processing
-            if getattr(self, 'opt_' + str(self.opt))():
+            if getattr(self, 'opt_' + str(self.opt))() or self.env.now >= self.limit:
+                self.num_triggered += 1
                 self.current_pool = [[[], 0]]
                 # if self.total > self.cart_capacity:
                 #     self.currentRow -= 1
@@ -163,11 +173,12 @@ class pooling_triggers:
                 # Counting cart utility
                 cartUti = 0
                 fCount = 0
-                for file in collected_batches:
-                    cartUti += round(file[1]/self.cart_capacity, 2)
+                for batch in collected_batches:
+                    self.processed_item += batch[1]
+                    cartUti += round(batch[1]/self.cart_capacity, 2)
                     cartUti = round(cartUti, 2)
                     fCount += 1
-                self.cartUtility += round(cartUti, 2)
+                self.cartUtility += round(cartUti/len(collected_batches), 2)
                 self.fileCount += fCount
                 # Processing routing variation
                 self.routing.run(collected_batches)

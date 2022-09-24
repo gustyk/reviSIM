@@ -16,9 +16,11 @@ fname = gf.reading_file()
 a = len(fname) + 1
 orderFile = list(range(1, a)) + ['Avg']
 # Counting total order
-totalOrder = gf.count_total_order(fname)
+# totalOrder = gf.count_total_order(fname)
+totalOrder = list()
 # Counting total item picked
-totalItemPicked = gf.count_total_item(fname)
+# totalItemPicked = gf.count_total_item(fname)
+totalItemPicked = list()
 
 trigger_opt = 1
 batching_opt = 1
@@ -58,11 +60,15 @@ for trigger_opt in [1,2,3,4]:
                         routing = routings.routings(batching_opt)
                         trigger = pooling_triggers.pooling_triggers(trigger_opt, env, picker_num, batching, routing, cart_capacity, delta)
 
-                        trigger.run(fn)
+                        limit = timedelta(hours=8).seconds
+                        trigger.run(fn, limit)
 
-                        # limit = timedelta(hours=9).seconds
                         # env.run(until=limit)
 
+                        # Listing total order
+                        totalOrder.append(trigger.currentRow)
+                        # Listing total total time
+                        totalItemPicked.append(trigger.processed_item)
                         # Listing total completion time
                         totalCompletionTime.append(trigger.completionTime)
                         # Listing total Turonver time
@@ -71,11 +77,15 @@ for trigger_opt in [1,2,3,4]:
                         avePickerUtility = round(trigger.completionTime/timedelta(hours=8), 2)
                         averagePickerUtility.append(avePickerUtility)
                         # Counting & listing average cart utility
-                        aveCartUtility = round(trigger.cartUtility/trigger.fileCount, 2)
+                        aveCartUtility = round(trigger.cartUtility/trigger.num_triggered, 2)
                         averageCartUtility.append(aveCartUtility)
                         # Listing total on time delivery
                         lateDelivery.append(trigger.lateCount)
 
+                    # Counting average of total order
+                    totalOrder = gf.count_average(totalOrder)
+                    # Counting average of total item picked
+                    totalItemPicked = gf.count_average(totalItemPicked)
                     # Counting average of total completion time
                     totalCompletionTime = gf.average_tct(totalCompletionTime)
                     # Counting average of turnover time
