@@ -14,7 +14,8 @@ fname = gf.reading_file()
 # Processing file
 # Making Index
 a = len(fname) + 1
-orderFile = list(range(1, a)) + ['Avg']
+# orderFile = list(range(1, a)) + ['Avg']
+orderFile = list(range(1, a))
 # Counting total order
 # totalOrder = gf.count_total_order(fname)
 totalOrder = list()
@@ -28,11 +29,23 @@ routing_opt = 1
 picker_num = 1
 cart_opt = 1
 
-for trigger_opt in [1]:
-    for batching_opt in [1]:
+trigger_list = list()
+batching_list = list()
+routing_list = list()
+picker_list = list()
+cart_list = list()
+
+totalCompletionTime = list()
+totalTurnOverTime = list()
+averagePickerUtility = list()
+averageCartUtility = list()
+lateDelivery = list()
+
+for trigger_opt in [1,2]:
+    for batching_opt in [1,2]:
         for routing_opt in [1]:
-            for picker_num in [3]:
-                for cart_opt in [1]:
+            for picker_num in [2]:
+                for cart_opt in [2]:
                     cart_capacity = 0
                     if cart_opt == 1:
                         cart_capacity = 50
@@ -40,12 +53,6 @@ for trigger_opt in [1]:
                         cart_capacity = 100
                     elif cart_opt == 3:
                         cart_capacity = 200
-
-                    totalCompletionTime = list()
-                    totalTurnOverTime = list()
-                    averagePickerUtility = list()
-                    averageCartUtility = list()
-                    lateDelivery = list()
 
                     for fn in fname:    
                         delta = timedelta(minutes=12).seconds
@@ -82,37 +89,43 @@ for trigger_opt in [1]:
                         # Listing total on time delivery
                         lateDelivery.append(trigger.lateCount)
 
-                    # Counting average of total order
-                    totalOrder = gf.count_average(totalOrder)
-                    # Counting average of total item picked
-                    totalItemPicked = gf.count_average(totalItemPicked)
-                    # Counting average of total completion time
-                    totalCompletionTime = gf.average_tct(totalCompletionTime)
-                    # Counting average of turnover time
-                    totalTurnOverTime = gf.average_tct(totalTurnOverTime)
-                    # Counting average of average picker utility
-                    averagePickerUtility = gf.count_average(averagePickerUtility)
-                    # Counting average of average cart utility
-                    averageCartUtility = gf.count_average(averageCartUtility)
-                    # Counting average of on time delivery
-                    lateDelivery = gf.count_average(lateDelivery)
+                        trigger_list.append(trigger_opt)
+                        batching_list.append(batching_opt)
+                        routing_list.append(routing_opt)
+                        picker_list.append(picker_num)
+                        cart_list.append(cart_capacity)
 
-                    # Put result on file
-                    result = pd.DataFrame({
-                        'OrderFile': orderFile,
-                        'TriggerMethod': [trigger_opt] * a,
-                        'BatchingMethod': [batching_opt] * a,
-                        'RoutingPolicy': [routing_opt] * a,
-                        'NumOfPickers': [picker_num] * a,
-                        'CartCapacity': [cart_capacity] * a,
-                        'TotalOrder': totalOrder,
-                        'CompletionTime': totalCompletionTime,
-                        'TurnOverTime': totalTurnOverTime,
-                        'TotalItemPicked': totalItemPicked,
-                        'AvgPickerUtil': averagePickerUtility,
-                        'AvgCartUtil': averageCartUtility,
-                        'NumOfLate': lateDelivery
-                        }, columns = ['OrderFile','TriggerMethod','BatchingMethod','RoutingPolicy','NumOfPickers','CartCapacity','TotalOrder','CompletionTime','TurnOverTime','TotalItemPicked','AvgPickerUtil','AvgCartUtil','NumOfLate'])
-                    filename = str(trigger_opt) + str(batching_opt) + str(routing_opt) + str(picker_num) + str(cart_opt) + '.csv'
-                    result.to_csv('result/test' + filename, index = False)
-                    print(filename)
+                    # # Counting average of total order
+                    # totalOrder = gf.count_average(totalOrder)
+                    # # Counting average of total item picked
+                    # totalItemPicked = gf.count_average(totalItemPicked)
+                    # # Counting average of total completion time
+                    # totalCompletionTime = gf.average_tct(totalCompletionTime)
+                    # # Counting average of turnover time
+                    # totalTurnOverTime = gf.average_tct(totalTurnOverTime)
+                    # # Counting average of average picker utility
+                    # averagePickerUtility = gf.count_average(averagePickerUtility)
+                    # # Counting average of average cart utility
+                    # averageCartUtility = gf.count_average(averageCartUtility)
+                    # # Counting average of on time delivery
+                    # lateDelivery = gf.count_average(lateDelivery)
+
+# Put result on file
+result = pd.DataFrame({
+    'OrderFile': orderFile * len (trigger_list),
+    'TriggerMethod': trigger_list,
+    'BatchingMethod': batching_list,
+    'RoutingPolicy': routing_list,
+    'NumOfPickers': picker_list,
+    'CartCapacity': cart_list,
+    'TotalOrder': totalOrder,
+    'CompletionTime': totalCompletionTime,
+    'TurnOverTime': totalTurnOverTime,
+    'TotalItemPicked': totalItemPicked,
+    'AvgPickerUtil': averagePickerUtility,
+    'AvgCartUtil': averageCartUtility,
+    'NumOfLate': lateDelivery
+    }, columns = ['OrderFile','TriggerMethod','BatchingMethod','RoutingPolicy','NumOfPickers','CartCapacity','TotalOrder','CompletionTime','TurnOverTime','TotalItemPicked','AvgPickerUtil','AvgCartUtil','NumOfLate'])
+# filename = str(trigger_opt) + str(batching_opt) + str(routing_opt) + str(picker_num) + str(cart_opt) + '.csv'
+result.to_csv('result/All.csv', index = False)
+print('All.csv')
