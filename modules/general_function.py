@@ -9,7 +9,7 @@ from datetime import timedelta
 def reading_file():
     fname = list()
     a = 1
-    while a <= 10:
+    while a <= 1:
         try:
             if a == 10:
                 source = 'orderFile/orderFile'
