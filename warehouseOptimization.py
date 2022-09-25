@@ -100,11 +100,11 @@ for trigger_opt in [1]:
                     # Put result on file
                     result = pd.DataFrame({
                         'OrderFile': orderFile,
-                        'TriggerMethod': [trigger_opt] * 11,
-                        'BatchingMethod': [batching_opt] * 11,
-                        'RoutingPolicy': [routing_opt] * 11,
-                        'NumOfPickers': [picker_num] * 11,
-                        'CartCapacity': [cart_capacity] * 11,
+                        'TriggerMethod': [trigger_opt] * a,
+                        'BatchingMethod': [batching_opt] * a,
+                        'RoutingPolicy': [routing_opt] * a,
+                        'NumOfPickers': [picker_num] * a,
+                        'CartCapacity': [cart_capacity] * a,
                         'TotalOrder': totalOrder,
                         'CompletionTime': totalCompletionTime,
                         'TurnOverTime': totalTurnOverTime,

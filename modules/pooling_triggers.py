@@ -177,7 +177,7 @@ class pooling_triggers:
                     self.picker_list.pop(0)
             
             # Trigger processing
-            if getattr(self, 'opt_' + str(self.opt))() or self.env.now >= self.limit or self.limitExceeded:
+            if getattr(self, 'opt_' + str(self.opt))() or self.env.now >= self.limit or self.limitExceeded or self.currentRow == (len(self.created_time) - 1):
                 self.num_triggered += 1
                 self.current_pool = [[[], 0]]
                 # if self.total > self.cart_capacity:
