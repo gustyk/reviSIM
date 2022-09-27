@@ -77,9 +77,9 @@ for trigger_opt in [1,2,3,4,5,6]:
                         # Listing total total time
                         totalItemPicked.append(trigger.processed_item)
                         # Listing total completion time
-                        totalCompletionTime.append(trigger.completionTime)
+                        totalCompletionTime.append(round(trigger.completionTime.seconds/60, 2))
                         # Listing total Turonver time
-                        totalTurnOverTime.append(trigger.turnOverTime)
+                        totalTurnOverTime.append(round(trigger.turnOverTime.seconds/60, 2))
                         # Counting and listing average picker utility
                         avePickerUtility = round(trigger.completionTime/(timedelta(hours=8)*picker_num), 2)
                         averagePickerUtility.append(avePickerUtility)
