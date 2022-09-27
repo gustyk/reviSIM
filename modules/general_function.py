@@ -1,5 +1,6 @@
 # Import libraries
 from sys import exit
+import os
 import re
 import numpy as np
 import pandas as pd
@@ -7,16 +8,12 @@ from datetime import timedelta
 
 # Reading order file
 def reading_file():
+    file_list = os.listdir('orderFile')
     fname = list()
-    a = 1
-    while a <= 1:
+    for file in file_list:
         try:
-            if a == 10:
-                source = 'orderFile/orderFile'
-            else:
-                source = 'orderFile/orderFile0'
             fn = pd.read_csv(
-                source + str(a) + '.csv',
+                'orderFile/' + file,
                 index_col = 0,
                 )
         except:
@@ -41,7 +38,6 @@ def reading_file():
         fn['Position'] = pos
         fn.drop('Order List', axis=1, inplace=True)
         fname.append(fn)
-        a += 1
     return fname
 
 # Changing string of order to list
