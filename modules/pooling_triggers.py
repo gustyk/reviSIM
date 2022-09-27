@@ -31,6 +31,7 @@ class pooling_triggers:
         self.num_triggered = 0
         self.processed_item = 0
         self.limitExceeded = False
+        self.reduce_start = False
  
     def run_simpy(self, fn, limit):
         # Assign order file to process
@@ -237,6 +238,11 @@ class pooling_triggers:
 
                 # Looping condition
                 self.startRow = self.currentRow
+                
+                if self.reduce_start:
+                    self.current_pool[0][1] += self.total_item[self.startRow]
+                    self.current_pool[0][0] += self.positions[self.startRow]
+                    self.reduce_start = False
                 self.time_limit += self.delta
 
             # Advance row to check
@@ -244,7 +250,12 @@ class pooling_triggers:
 
     def opt_1(self):
         # FCFS
-        return self.env.now >= self.time_limit or self.currentRow == len(self.created_time)
+        if self.env.now >= self.time_limit or self.currentRow == len(self.created_time):
+            if self.env.now > self.time_limit:
+                self.reduce_start = True
+            return True
+        else:
+            return False
     def opt_2(self):
         # Seed
         return self.currentRow == self.order_num or self.currentRow == len(self.created_time)
@@ -253,7 +264,12 @@ class pooling_triggers:
         return (len(self.picker_list) < self.picker and self.currentRow - self.startRow != 0) or self.currentRow == len(self.created_time)
     def opt_4(self):
         # Max Cart
-        return (self.total >= self.cart_capacity and (self.currentRow - 1) - self.startRow != 0) or self.currentRow == len(self.created_time)
+        if (self.current_pool[0][1] >= self.cart_capacity and (self.currentRow - 1) - self.startRow != 0) or self.currentRow == len(self.created_time):
+            if self.current_pool[0][1] >= self.cart_capacity:
+                self.reduce_start = True
+            return True
+        else:
+            return False
     def opt_5(self):
         # Urgent First + Max Picker
         # check urgent order
@@ -263,7 +279,12 @@ class pooling_triggers:
         # Urgent First + Max Cart
         # check urgent order
         self.check_urgent()
-        return (self.urgentCount >= self.maxUrgent and (self.total >= self.cart_capacity and (self.currentRow - 1) - self.startRow != 0)) or self.currentRow == len(self.created_time)
+        if (self.urgentCount >= self.maxUrgent and (self.current_pool[0][1] >= self.cart_capacity and (self.currentRow - 1) - self.startRow != 0)) or self.currentRow == len(self.created_time):
+            if self.current_pool[0][1] >= self.cart_capacity:
+                self.reduce_start = True
+            return True
+        else:
+            return False
 
     def check_urgent(self):
         # check urgent order
