@@ -73,7 +73,7 @@ for trigger_opt in [1,2,3,4,5,6]:
                         # env.run(until=limit)
 
                         # Listing total order
-                        totalOrder.append(trigger.currentRow - 1)
+                        totalOrder.append(trigger.currentRow)
                         # Listing total total time
                         totalItemPicked.append(trigger.processed_item)
                         # Listing total completion time
