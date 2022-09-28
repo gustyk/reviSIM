@@ -1,4 +1,5 @@
 from typing import Dict
+import time
 import simpy
 import pandas as pd
 import random
@@ -15,7 +16,7 @@ fname = gf.reading_file()
 # Making Index
 a = len(fname) + 1
 # orderFile = list(range(1, a)) + ['Avg']
-orderFile = list(range(1, a))
+orderFile = list()
 # Counting total order
 # totalOrder = gf.count_total_order(fname)
 totalOrder = list()
@@ -47,6 +48,7 @@ for trigger_opt in [1,2,3,4,5,6]:
             for picker_num in [1,2,3,4,5,6,7,8,9,10,11,12]:
                 for cart_opt in [1,2,3]:
                     print('Processing rules %d-%d-%d-%d-%d' % (trigger_opt, batching_opt, routing_opt, picker_num, cart_opt))
+                    start_time = time.time()
                     cart_capacity = 0
                     if cart_opt == 1:
                         cart_capacity = 50
@@ -54,21 +56,21 @@ for trigger_opt in [1,2,3,4,5,6]:
                         cart_capacity = 100
                     elif cart_opt == 3:
                         cart_capacity = 200
+                    fn_idx = 1
+                    limit = timedelta(hours=8).seconds
+                    delta = timedelta(minutes=12).seconds
+                    class Object(object):
+                        pass
 
+                    env = Object()
                     for fn in fname:    
-                        delta = timedelta(minutes=12).seconds
 
-                        class Object(object):
-                            pass
-
-                        env = Object()
                         env.now = 0
 
                         batching = batchings.batchings(batching_opt, cart_capacity)
                         routing = routings.routings(batching_opt)
                         trigger = pooling_triggers.pooling_triggers(trigger_opt, env, picker_num, batching, routing, cart_capacity, delta)
 
-                        limit = timedelta(hours=8).seconds
                         trigger.run(fn, limit)
 
                         # env.run(until=limit)
@@ -90,11 +92,13 @@ for trigger_opt in [1,2,3,4,5,6]:
                         # Listing total on time delivery
                         lateDelivery.append(trigger.lateCount)
 
+                        orderFile.append(fn_idx)
                         trigger_list.append(trigger_opt)
                         batching_list.append(batching_opt)
                         routing_list.append(routing_opt)
                         picker_list.append(picker_num)
                         cart_list.append(cart_capacity)
+                        fn_idx += 1
 
                     # # Counting average of total order
                     # totalOrder = gf.count_average(totalOrder)
@@ -110,10 +114,12 @@ for trigger_opt in [1,2,3,4,5,6]:
                     # averageCartUtility = gf.count_average(averageCartUtility)
                     # # Counting average of on time delivery
                     # lateDelivery = gf.count_average(lateDelivery)
+                        # print(time.time() - start_time)
+                        # start_time = time.time()
 
 # Put result on file
 result = pd.DataFrame({
-    'OrderFile': orderFile * len (trigger_list),
+    'OrderFile': orderFile,
     'TriggerMethod': trigger_list,
     'BatchingMethod': batching_list,
     'RoutingPolicy': routing_list,
