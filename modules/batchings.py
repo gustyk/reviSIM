@@ -11,7 +11,8 @@ class batchings:
     def opt_1(self):
         # fcfs
         rfile = list()
-        qt = self.file['Total Item'].to_list()
+        qt = self.file[:,1]
+        # qt = self.file['Total Item'].to_list()
         a = 0
         b = 0
         total = 0
@@ -19,22 +20,22 @@ class batchings:
         while i < len(qt):
             total += qt[i]
             if total > self.cart_capacity:
-                fl = self.file.iloc[a:b]
+                fl = self.file[a:b]
                 a = b
                 total = qt[i]
-                if not fl.empty:
+                if len(fl) > 0:
                     rfile.append(fl)
             b += 1
             i += 1
-        fl = self.file.iloc[a:]
-        if not fl.empty:
+        fl = self.file[a:]
+        if len(fl) > 0:
             rfile.append(fl)
         return rfile
  
     def opt_2(self):
         # seed
-        qt = self.file['Total Item'].to_list()
-        position = self.file['Position'].to_list()
+        qt = self.file[:,1]
+        position = self.file[:,3]
         aisle_position = list()
         for post in position:
             aisle = list()
@@ -129,13 +130,13 @@ class batchings:
         rfile = list()
         for fl in filelist:
             pair = []
-            loc = fl['Position'].to_list()
+            loc = fl[:,3]
             location = []
             for lc in loc:
                 location += lc
             location = gf.sort_position(location)
             pair.append(location)
-            quan = fl['Total Item'].to_list()
+            quan = fl[:,1]
             quantity = 0
             for qt in quan:
                 quantity += qt
