@@ -46,6 +46,7 @@ for trigger_opt in [1,2,3,4,5,6]:
         for routing_opt in [1,2]:
             for picker_num in [1,2,3,4,5,6,7,8,9,10,11,12]:
                 for cart_opt in [1,2,3]:
+                    print('Processing rules %d-%d-%d-%d-%d' % (trigger_opt, batching_opt, routing_opt, picker_num, cart_opt))
                     cart_capacity = 0
                     if cart_opt == 1:
                         cart_capacity = 50
