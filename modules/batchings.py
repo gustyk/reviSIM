@@ -121,7 +121,7 @@ class batchings:
                         index_list.append(in_ob)
         rfile = list()
         for il in index_list:
-            fl = self.file.iloc[il]
+            fl = self.file[il]
             rfile.append(fl)
         return rfile
     
