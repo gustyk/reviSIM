@@ -181,7 +181,16 @@ class pooling_triggers:
         return self.env.now == self.time_limit or self.currentRow == self.rowNum
     def seed(self):
         # Seed
-        return self.currentRow == self.order_num_limit or self.currentRow == self.rowNum
+        if self.currentRow >= self.order_num_limit or self.currentRow == self.rowNum:
+            if self.currentRow > self.order_num_limit:
+                self.back_order += 1
+                orderNum = copy.copy(self.currentRow)
+                while orderNum > self.order_num_limit:
+                    orderNum -= 1
+                    self.back_order += 1
+            return True
+        else:
+            return False
     def maxPicker(self):
         # Max Picker
         return (len(self.picker_list) < self.picker and self.currentRow - self.startRow != 0) or self.currentRow == self.rowNum
