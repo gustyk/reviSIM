@@ -48,19 +48,20 @@ class pooling_triggers:
         self.created_time = self.listFn[:,0]
         self.total_item = self.listFn[:,1]
         self.positions = self.listFn[:,3]
+        self.rowNum = len(self.created_time)
         # Assign Initial Time
         self.initial_time = self.created_time[0].replace(minute=0, second=0)
         self.order_num_limit += self.order_num
         # Loop until all orders in the file is processed or reached time limit
-        while (self.currentRow < len(self.created_time) and self.env.now <= self.limit and not self.limitExceeded) or self.current_pool[0][1] > 0:
+        while (self.currentRow < self.rowNum and self.env.now <= self.limit and not self.limitExceeded) or self.current_pool[0][1] > 0:
             # Calculate current timestamp
             time_now = self.initial_time + timedelta(seconds=self.env.now)
             # Calculate next time delta
             
-            if (self.currentRow < len(self.created_time) and time_now > self.created_time[self.currentRow]):
+            if (self.currentRow < self.rowNum and time_now > self.created_time[self.currentRow]):
                 self.currentRow += 1
 
-            while (self.currentRow < len(self.created_time) and time_now == self.created_time[self.currentRow]):
+            while (self.currentRow < self.rowNum and time_now == self.created_time[self.currentRow]):
                 self.current_pool[0][0] += self.positions[self.currentRow]
                 self.current_pool[0][1] += self.total_item[self.currentRow]
                 self.current_pool[0][2].append(self.total_item[self.currentRow])
@@ -73,7 +74,7 @@ class pooling_triggers:
                     self.picker_list.pop(0)
             
             # Trigger processing
-            if self.checkTrigger() or self.env.now >= self.limit or self.limitExceeded or (self.currentRow >= len(self.created_time) and self.current_pool[0][1] > 0):
+            if self.checkTrigger() or self.env.now >= self.limit or self.limitExceeded or (self.currentRow >= self.rowNum and self.current_pool[0][1] > 0):
                 # print(time.time() - start_time)
                 self.num_triggered += 1
                 self.order_num_limit += self.order_num
@@ -177,16 +178,16 @@ class pooling_triggers:
 
     def fcfs(self):
         # FCFS
-        return self.env.now == self.time_limit or self.currentRow == len(self.created_time)
+        return self.env.now == self.time_limit or self.currentRow == self.rowNum
     def seed(self):
         # Seed
-        return self.currentRow == self.order_num_limit or self.currentRow == len(self.created_time)
+        return self.currentRow == self.order_num_limit or self.currentRow == self.rowNum
     def maxPicker(self):
         # Max Picker
-        return (len(self.picker_list) < self.picker and self.currentRow - self.startRow != 0) or self.currentRow == len(self.created_time)
+        return (len(self.picker_list) < self.picker and self.currentRow - self.startRow != 0) or self.currentRow == self.rowNum
     def maxCart(self):
         # Max Cart
-        if (self.current_pool[0][1] >= self.cart_capacity and (self.currentRow - 1) - self.startRow != 0) or self.currentRow == len(self.created_time):
+        if (self.current_pool[0][1] >= self.cart_capacity and (self.currentRow - 1) - self.startRow != 0) or self.currentRow == self.rowNum:
             if self.current_pool[0][1] > self.cart_capacity:
                 self.back_order += 1
                 while sum(self.current_pool[0][2][:-self.back_order]) > self.cart_capacity:
@@ -198,12 +199,12 @@ class pooling_triggers:
         # Urgent First + Max Picker
         # check urgent order
         self.check_urgent()
-        return (self.urgentCount >= self.maxUrgent and (len(self.picker_list) < self.picker and self.currentRow - self.startRow != 0)) or self.currentRow == len(self.created_time)
+        return (self.urgentCount >= self.maxUrgent and (len(self.picker_list) < self.picker and self.currentRow - self.startRow != 0)) or self.currentRow == self.rowNum
     def ugMaxCart(self):
         # Urgent First + Max Cart
         # check urgent order
         self.check_urgent()
-        if (self.urgentCount >= self.maxUrgent and (self.current_pool[0][1] >= self.cart_capacity and (self.currentRow - 1) - self.startRow != 0)) or self.currentRow == len(self.created_time):
+        if (self.urgentCount >= self.maxUrgent and (self.current_pool[0][1] >= self.cart_capacity and (self.currentRow - 1) - self.startRow != 0)) or self.currentRow == self.rowNum:
             if self.current_pool[0][1] > self.cart_capacity:
                 self.back_order += 1
                 while sum(self.current_pool[0][2][:-self.back_order]) > self.cart_capacity:
