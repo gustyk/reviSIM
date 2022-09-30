@@ -6,9 +6,12 @@ class batchings:
     
     def run(self, file):
         self.file = file
-        return getattr(self, 'opt_' + str(self.opt))()
+        if self.opt == 1:
+            return self.fcfs()
+        elif self.opt == 2:
+            return self.seed()
 
-    def opt_1(self):
+    def fcfs(self):
         # fcfs
         rfile = list()
         qt = self.file[:,1]
@@ -32,7 +35,7 @@ class batchings:
             rfile.append(fl)
         return rfile
  
-    def opt_2(self):
+    def seed(self):
         # seed
         qt = self.file[:,1]
         position = self.file[:,3]

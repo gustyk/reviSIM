@@ -5,9 +5,12 @@ class routings:
         
     def run(self, filelist):
         self.filelist = filelist
-        return getattr(self, 'opt_' + str(self.opt))()
+        if self.opt == 1:
+            return self.s_shape()
+        elif self.opt == 2:
+            return self.largest_gap()
     
-    def opt_1(self):
+    def s_shape(self):
         # s-shape
         for file in self.filelist:
             position = file[0]
@@ -18,7 +21,7 @@ class routings:
             file[0] = distance
         return self.filelist
     
-    def opt_2(self):
+    def largest_gap(self):
         # Largest Gap
         for file in self.filelist:
             position = file[0]
