@@ -20,7 +20,8 @@ class pooling_triggers:
         self.turnOverTime = timedelta(seconds=0)
         self.lateCount = 0
         self.startRow = 0
-        self.currentRow = 0
+        # start from the second row
+        self.currentRow = 1
         self.time_limit = delta
         self.next_time = 0
         self.order_num_limit = 0
@@ -52,21 +53,21 @@ class pooling_triggers:
         # Assign Initial Time
         self.initial_time = self.created_time[0].replace(minute=0, second=0)
         self.order_num_limit += self.order_num
+        # pre-advance now
+        self.env.now += (self.created_time[0] - self.initial_time).seconds
+        # pre-fill pool
+        self.current_pool[0][0] += self.positions[0]
+        self.current_pool[0][1] += self.total_item[0]
+        self.current_pool[0][2].append(self.total_item[0])
         # Loop until all orders in the file is processed or reached time limit
         while (self.currentRow < self.rowNum and self.env.now <= self.limit and not self.limitExceeded) or self.current_pool[0][1] > 0:
             # Calculate current timestamp
-            time_now = self.initial_time + timedelta(seconds=self.env.now)
-            # Calculate next time delta
-            
-            if (self.currentRow < self.rowNum and time_now > self.created_time[self.currentRow]):
-                self.currentRow += 1
+            time_now = self.created_time[self.currentRow]
+            self.env.now += (time_now - self.created_time[self.currentRow - 1]).seconds
 
-            while (self.currentRow < self.rowNum and time_now == self.created_time[self.currentRow]):
-                self.current_pool[0][0] += self.positions[self.currentRow]
-                self.current_pool[0][1] += self.total_item[self.currentRow]
-                self.current_pool[0][2].append(self.total_item[self.currentRow])
-                # self.batch_orders.append(self.fn.iloc[self.currentRow])
-                self.currentRow += 1
+            self.current_pool[0][0] += self.positions[self.currentRow]
+            self.current_pool[0][1] += self.total_item[self.currentRow]
+            self.current_pool[0][2].append(self.total_item[self.currentRow])
 
             # Deleting finished picker list
             if len(self.picker_list) != 0:
@@ -75,9 +76,9 @@ class pooling_triggers:
             
             # Trigger processing
             if self.checkTrigger() or self.env.now >= self.limit or self.limitExceeded or (self.currentRow >= self.rowNum and self.current_pool[0][1] > 0):
-                # print(time.time() - start_time)
                 self.num_triggered += 1
                 self.order_num_limit += self.order_num
+                # print("%d. Start Row: %d, Current Row: %d, Back Order: %d, secs: %f" % (self.num_triggered, self.startRow, self.currentRow, self.back_order, time.time() - start_time))
                 if self.back_order > 0:
                     if (self.startRow < self.currentRow):
                         batch_orders = self.listFn[max(0, self.startRow-self.back_order):self.currentRow-self.back_order]
@@ -160,7 +161,7 @@ class pooling_triggers:
                 self.time_limit += self.delta
 
             # Advance time 1 second
-            self.env.now += 1
+            self.currentRow += 1
 
     def checkTrigger(self):
         if self.opt == 1:
@@ -178,7 +179,12 @@ class pooling_triggers:
 
     def fcfs(self):
         # FCFS
-        return self.env.now == self.time_limit or self.currentRow == self.rowNum
+        if self.env.now >= self.time_limit or self.currentRow == self.rowNum:
+            if self.env.now > self.time_limit:
+                self.back_order += 1
+            return True
+        else:
+            return False
     def seed(self):
         # Seed
         if self.currentRow >= self.order_num_limit or self.currentRow == self.rowNum:
