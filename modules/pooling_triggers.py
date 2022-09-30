@@ -24,7 +24,7 @@ class pooling_triggers:
         self.currentRow = 1
         self.time_limit = delta
         self.next_time = 0
-        self.order_num_limit = 0
+        self.max_order_limit = 0
         self.order_num = 12
         self.total_item = 0
         self.urgentCount = 0
@@ -37,6 +37,7 @@ class pooling_triggers:
         self.back_order = 0
         self.all_compl_time = 0
         self.lastCheckedRow = 0
+        self.sortedDueList = list()
  
     def run(self, fn, limit):
         start_time = time.time()
@@ -52,7 +53,7 @@ class pooling_triggers:
         self.rowNum = len(self.created_time)
         # Assign Initial Time
         self.initial_time = self.created_time[0].replace(minute=0, second=0)
-        self.order_num_limit += self.order_num
+        self.max_order_limit += self.max_order
         # pre-advance now
         self.env.now += (self.created_time[0] - self.initial_time).seconds
         # pre-fill pool
@@ -68,7 +69,6 @@ class pooling_triggers:
             self.current_pool[0][0] += self.positions[self.currentRow]
             self.current_pool[0][1] += self.total_item[self.currentRow]
             self.current_pool[0][2].append(self.total_item[self.currentRow])
-
             # Deleting finished picker list
             if len(self.picker_list) != 0:
                 if self.picker_list[0] <= time_now:
@@ -77,7 +77,7 @@ class pooling_triggers:
             # Trigger processing
             if self.checkTrigger() or self.env.now >= self.limit or self.limitExceeded or (self.currentRow >= self.rowNum and self.current_pool[0][1] > 0):
                 self.num_triggered += 1
-                self.order_num_limit += self.order_num
+                self.max_order_limit += self.max_order
                 # print("%d. Start Row: %d, Current Row: %d, Back Order: %d, secs: %f" % (self.num_triggered, self.startRow, self.currentRow, self.back_order, time.time() - start_time))
                 if self.back_order > 0:
                     if (self.startRow < self.currentRow):
@@ -187,11 +187,11 @@ class pooling_triggers:
             return False
     def seed(self):
         # Seed
-        if self.currentRow >= self.order_num_limit or self.currentRow == self.rowNum:
-            if self.currentRow > self.order_num_limit:
+        if self.currentRow >= self.max_order_limit or self.currentRow == self.rowNum:
+            if self.currentRow > self.max_order_limit:
                 self.back_order += 1
                 orderNum = copy.copy(self.currentRow)
-                while orderNum > self.order_num_limit:
+                while orderNum > self.max_order_limit:
                     orderNum -= 1
                     self.back_order += 1
             return True
@@ -214,12 +214,12 @@ class pooling_triggers:
         # Urgent First + Max Picker
         # check urgent order
         self.check_urgent()
-        return (self.urgentCount >= self.maxUrgent and (len(self.picker_list) < self.picker and self.currentRow - self.startRow != 0)) or self.currentRow == self.rowNum
+        return self.urgentCount >= self.maxUrgent or (len(self.picker_list) < self.picker and self.currentRow - self.startRow != 0) or self.currentRow == self.rowNum
     def ugMaxCart(self):
         # Urgent First + Max Cart
         # check urgent order
         self.check_urgent()
-        if (self.urgentCount >= self.maxUrgent and (self.current_pool[0][1] >= self.cart_capacity and (self.currentRow - 1) - self.startRow != 0)) or self.currentRow == self.rowNum:
+        if self.urgentCount >= self.maxUrgent or (self.current_pool[0][1] >= self.cart_capacity and (self.currentRow - 1) - self.startRow != 0) or self.currentRow == self.rowNum:
             if self.current_pool[0][1] > self.cart_capacity:
                 self.back_order += 1
                 while sum(self.current_pool[0][2][:-self.back_order]) > self.cart_capacity:
@@ -239,13 +239,18 @@ class pooling_triggers:
             self.routing.run(to_routing)
             compl_time = self.routing.count_completion_time()
             self.all_compl_time = sum(c.seconds for c in compl_time)
-            check_time = self.initial_time + timedelta(seconds=(self.env.now + self.all_compl_time))
             self.lastCheckedRow = self.currentRow
-            for order_due in self.listFn[self.startRow:self.currentRow, 2]:
-                if check_time > order_due:
-                    self.urgentCount += 1
-        else:
-            check_time = self.initial_time + timedelta(seconds=(self.env.now + self.all_compl_time))
-            for order_due in self.listFn[self.startRow:self.currentRow, 2]:
-                if check_time > order_due:
-                    self.urgentCount += 1
+            self.sortedDueList = sorted(self.listFn[self.startRow:self.currentRow, 2])
+        
+        check_time = self.initial_time + timedelta(seconds=(self.env.now + self.all_compl_time))
+        idx = 0
+        while idx < len(self.sortedDueList) and check_time > self.sortedDueList[idx]:
+            self.urgentCount += 1
+            idx += 1
+    
+    def insort(self, newDue):
+        for i in range(len(self.sortedDueList)):
+            if self.sortedDueList[i] > newDue:
+                index = i
+                break
+        self.sortedDueList = self.sortedDueList[: i] + [newDue] + self.sortedDueList[i :]
