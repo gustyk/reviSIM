@@ -90,7 +90,7 @@ for trigger_opt in [1,2,3,4,5,6]:
                         ave_picker_utility = round(trigger.completion_time/(timedelta(hours=8)*picker_num), 2)
                         average_picker_utility.append(ave_picker_utility)
                         # Counting & listing average cart utility
-                        ave_cart_utility = round(trigger.cartUtility/trigger.num_triggered, 2)
+                        ave_cart_utility = round(trigger.cart_utility/trigger.num_triggered, 2)
                         average_cart_utility.append(ave_cart_utility)
                         # Listing total on time delivery
                         late_delivery.append(trigger.lateCount)
