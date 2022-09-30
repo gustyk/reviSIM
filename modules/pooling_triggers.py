@@ -4,7 +4,7 @@ from datetime import timedelta
 import copy
 
 class pooling_triggers:
-    def __init__(self, opt, env, picker, batching, routing, cart_capacity, delta):
+    def __init__(self, opt, env, picker, batching, routing, cart_capacity, delta, maxUrgent, maxOrder):
         self.opt = opt
         self.env = env
         self.picker = picker
@@ -25,10 +25,10 @@ class pooling_triggers:
         self.time_limit = delta
         self.next_time = 0
         self.max_order_limit = 0
-        self.order_num = 12
+        self.max_order = maxOrder
         self.total_item = 0
         self.urgentCount = 0
-        self.maxUrgent = 2
+        self.maxUrgent = maxUrgent
         self.current_pool = [[[], 0, []]]
         self.num_triggered = 0
         self.processed_item = 0

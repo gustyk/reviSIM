@@ -30,6 +30,9 @@ routing_opt = 1
 picker_num = 1
 cart_opt = 1
 
+max_order = 12
+max_urgent = 1
+
 trigger_list = list()
 batching_list = list()
 routing_list = list()
@@ -69,7 +72,7 @@ for trigger_opt in [1,2,3,4,5,6]:
 
                         batching = batchings.batchings(batching_opt, cart_capacity)
                         routing = routings.routings(batching_opt)
-                        trigger = pooling_triggers.pooling_triggers(trigger_opt, env, picker_num, batching, routing, cart_capacity, delta)
+                        trigger = pooling_triggers.pooling_triggers(trigger_opt, env, picker_num, batching, routing, cart_capacity, delta, max_urgent, max_order)
 
                         trigger.run(fn, limit)
 
