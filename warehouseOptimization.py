@@ -24,13 +24,9 @@ total_order = list()
 # total_item_picked = gf.count_total_item(fname)
 total_item_picked = list()
 
-trigger_opt = 1
-batching_opt = 1
-routing_opt = 1
-picker_num = 1
-cart_opt = 1
-
+# Specify order limit for trigger VTWB
 max_order = 12
+# Specify urgent order limit
 max_urgent = 1
 
 trigger_list = list()
@@ -41,6 +37,7 @@ cart_list = list()
 
 total_completion_time = list()
 total_turn_over_time = list()
+average_turn_over_time = list()
 average_picker_utility = list()
 average_cart_utility = list()
 late_delivery = list()
@@ -79,13 +76,15 @@ for trigger_opt in [1,2,3,4,5,6]:
                         # env.run(until=limit)
 
                         # Listing total order
-                        total_order.append(trigger.current_row)
+                        total_order.append(trigger.total_order)
                         # Listing total total time
-                        total_item_picked.append(trigger.processed_item)
+                        total_item_picked.append(sum(trigger.total_item))
                         # Listing total completion time
                         total_completion_time.append(round(trigger.completion_time.seconds/60, 2))
                         # Listing total Turonver time
                         total_turn_over_time.append(round(trigger.turn_over_time.seconds/60, 2))
+                        # Listing avg Turonver time
+                        average_turn_over_time.append(round(trigger.turn_over_time.seconds/60/trigger.total_order, 2))
                         # Counting and listing average picker utility
                         ave_picker_utility = round(trigger.completion_time/(timedelta(hours=8)*picker_num), 2)
                         average_picker_utility.append(ave_picker_utility)
@@ -129,10 +128,11 @@ result = pd.DataFrame({
     'TotalOrder': total_order,
     'CompletionTime': total_completion_time,
     'TurnOverTime': total_turn_over_time,
+    'AvgTurnOverTime': average_turn_over_time,
     'TotalItemPicked': total_item_picked,
     'AvgPickerUtil': average_picker_utility,
     'AvgCartUtil': average_cart_utility,
     'NumOfLate': late_delivery
-    }, columns = ['OrderFile','TriggerMethod','BatchingMethod','RoutingPolicy','NumOfPickers','CartCapacity','TotalOrder','CompletionTime','TurnOverTime','TotalItemPicked','AvgPickerUtil','AvgCartUtil','NumOfLate'])
+    }, columns = ['OrderFile','TriggerMethod','BatchingMethod','RoutingPolicy','NumOfPickers','CartCapacity','TotalOrder','CompletionTime','TurnOverTime', 'AvgTurnOverTime','TotalItemPicked','AvgPickerUtil','AvgCartUtil','NumOfLate'])
 result.to_csv('result/All.csv', index = False)
 print('All.csv')
