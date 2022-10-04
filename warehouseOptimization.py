@@ -68,7 +68,7 @@ for trigger_opt in [1,2,3,4,5,6]:
                         env.now = 0
 
                         batching = batchings.batchings(batching_opt, cart_capacity)
-                        routing = routings.routings(batching_opt)
+                        routing = routings.routings(routing_opt)
                         trigger = pooling_triggers.pooling_triggers(trigger_opt, env, picker_num, batching, routing, cart_capacity, delta, max_urgent, max_order)
 
                         trigger.run(fn, limit)
