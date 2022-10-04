@@ -68,15 +68,16 @@ class pooling_triggers:
         self.current_pool[0][1] += self.total_item[0]
         self.current_pool[0][2].append(self.total_item[0])
         # Loop until all orders in the file is processed or reached time limit
-        while (self.current_row < self.total_order and self.env.now <= self.limit and not self.limit_exceeded) or self.current_pool[0][1] > 0:
+        while (self.env.now <= self.limit and not self.limit_exceeded) and (self.current_row < self.total_order or self.current_pool[0][1] > 0):
             # Calculate current timestamp
-            time_now = self.created_time[self.current_row]
-            self.env.now += (time_now - self.created_time[self.current_row - 1]).seconds
+            if (self.current_row < self.total_order):
+                time_now = self.created_time[self.current_row]
+                # Put current order data to pool cache
+                self.current_pool[0][0] += self.positions[self.current_row]
+                self.current_pool[0][1] += self.total_item[self.current_row]
+                self.current_pool[0][2].append(self.total_item[self.current_row])
 
-            # Put current order data to pool cache
-            self.current_pool[0][0] += self.positions[self.current_row]
-            self.current_pool[0][1] += self.total_item[self.current_row]
-            self.current_pool[0][2].append(self.total_item[self.current_row])
+                self.env.now += (time_now - self.created_time[self.current_row - 1]).seconds
 
             # Deleting finished picker list
             if len(self.picker_list) != 0:
@@ -149,7 +150,8 @@ class pooling_triggers:
                         # If the expected finish time more than time limit
                         # Mark as limit exceeded to halt further processing
                         if finTime > (self.initial_time + timedelta(seconds=self.limit)):
-                            self.limit_exceeded = True
+                            # self.limit_exceeded = True
+                            self.limit_exceeded = False
                         else:
                             self.completion_time += compl_time
 
@@ -180,12 +182,35 @@ class pooling_triggers:
 
             # Advance next order data
             self.current_row += 1
+        
+        # Process remaining order past time limit
+        # put into order pool
+        while self.current_row < self.total_order:
+            self.current_pool[0][0] += self.positions[self.current_row]
+            self.current_pool[0][1] += self.total_item[self.current_row]
+            self.current_pool[0][2].append(self.total_item[self.current_row])
+            self.current_row += 1
+
+        if (self.current_pool[0][1] > 0):
+            self.late_count += len(self.current_pool[0][2])
+            to_routing = copy.deepcopy(self.current_pool)
+            self.routing.run(to_routing)
+            compl_time = self.routing.count_completion_time()
+            
+            self.completion_time += compl_time[0]
+
+            finTime = time_now + compl_time[0] + timedelta(minutes=1)
+            # Calculate tov
+            last_n_row = len(self.current_pool[0][2])
+            for due_time in self.created_time[-last_n_row:]:
+                tov_time = (finTime - due_time)
+                self.turn_over_time += tov_time             
 
     def check_trigger(self):
         if self.opt == 1:
-            return self.fcfs()
+            return self.ftwb()
         elif self.opt == 2:
-            return self.seed()
+            return self.vtwb()
         elif self.opt == 3:
             return self.max_picker()
         elif self.opt == 4:
@@ -195,16 +220,16 @@ class pooling_triggers:
         elif self.opt == 6:
             return self.ug_max_cart()
 
-    def fcfs(self):
-        # FCFS
+    def ftwb(self):
+        # FTWB
         if self.env.now >= self.time_limit or self.current_row == self.total_order:
             if self.env.now > self.time_limit:
                 self.back_order += 1
             return True
         else:
             return False
-    def seed(self):
-        # Seed
+    def vtwb(self):
+        # VTWB
         if self.current_row >= self.max_order_limit or self.current_row == self.total_order:
             # If current order row exceed order limit go back n row
             # until fits in order limit
