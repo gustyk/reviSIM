@@ -76,18 +76,17 @@ for trigger_opt in [1,2,3,4,5,6]:
                         # env.run(until=limit)
 
                         # Listing total order
-                        total_order.append(trigger.total_order)
+                        total_order.append(trigger.current_row - 1)
                         # Listing total total time
                         total_item_picked.append(sum(trigger.total_item))
                         # Listing total completion time
-                        total_completion_time.append(round(trigger.completion_time.seconds/60, 2))
+                        total_completion_time.append(round(trigger.completion_time.total_seconds()/60, 2))
                         # Listing total Turonver time
-                        total_turn_over_time.append(round(trigger.turn_over_time.seconds/60, 2))
+                        total_turn_over_time.append(round(trigger.turn_over_time.total_seconds()/60, 2))
                         # Listing avg Turonver time
-                        average_turn_over_time.append(round(trigger.turn_over_time.seconds/60/trigger.total_order, 2))
+                        average_turn_over_time.append(round(trigger.turn_over_time.total_seconds()/60/trigger.current_row, 2))
                         # Counting and listing average picker utility
-                        ave_picker_utility = round(trigger.completion_time/(timedelta(hours=8)*picker_num), 2)
-                        average_picker_utility.append(ave_picker_utility)
+                        average_picker_utility.append(trigger.ave_picker_utility)
                         # Counting & listing average cart utility
                         ave_cart_utility = round(trigger.cart_utility/trigger.num_triggered, 2)
                         average_cart_utility.append(ave_cart_utility)

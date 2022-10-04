@@ -182,13 +182,19 @@ class pooling_triggers:
             # Advance next order data
             self.current_row += 1
         
+        self.ave_picker_utility = round(self.completion_time/(timedelta(hours=8)*self.picker), 2)
         # Process remaining order past time limit
         # put into order pool
-        while self.current_row < self.total_order:
-            self.current_pool[0][0] += self.positions[self.current_row]
-            self.current_pool[0][1] += self.total_item[self.current_row]
-            self.current_pool[0][2].append(self.total_item[self.current_row])
-            self.current_row += 1
+        time_limit = self.initial_time + timedelta(seconds=self.limit)
+        limit_exceeded = False
+        while self.current_row < self.total_order and not limit_exceeded:
+            if self.created_time[self.current_row] <= time_limit:
+                self.current_pool[0][0] += self.positions[self.current_row]
+                self.current_pool[0][1] += self.total_item[self.current_row]
+                self.current_pool[0][2].append(self.total_item[self.current_row])
+                self.current_row += 1
+            else:
+                limit_exceeded = True
 
         if (self.current_pool[0][1] > 0):
             self.late_count += len(self.current_pool[0][2])
@@ -200,9 +206,9 @@ class pooling_triggers:
 
             finTime = time_now + compl_time[0] + timedelta(minutes=1)
             # Calculate tov
-            last_n_row = len(self.current_pool[0][2])
-            for due_time in self.created_time[-last_n_row:]:
-                tov_time = (finTime - due_time)
+            last_check_row = self.created_time[self.current_row-len(self.current_pool[0][2]):self.current_row]
+            for created_time in last_check_row:
+                tov_time = (finTime - created_time)
                 self.turn_over_time += tov_time             
 
     def check_trigger(self):
