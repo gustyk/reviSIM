@@ -308,7 +308,10 @@ class pooling_triggers:
             self.sorted_due_list = sorted(self.order_streams[self.start_row:self.current_row, 2])
         
         # Calculate check time and compare with order due
-        check_time = self.initial_time + timedelta(seconds=(self.env.now + self.all_compl_time))
+        if len(self.picker_list) > 0:
+            check_time = self.picker_list[-1] + timedelta(seconds=self.all_compl_time)
+        else:
+            check_time = self.initial_time + timedelta(seconds=(self.env.now + self.all_compl_time))
         idx = 0
         while idx < len(self.sorted_due_list) and check_time > self.sorted_due_list[idx]:
             self.urgent_count += 1
