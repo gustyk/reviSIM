@@ -150,8 +150,7 @@ class pooling_triggers:
                         # If the expected finish time more than time limit
                         # Mark as limit exceeded to halt further processing
                         if finTime > (self.initial_time + timedelta(seconds=self.limit)):
-                            # self.limit_exceeded = True
-                            self.limit_exceeded = False
+                            self.limit_exceeded = True
                         else:
                             self.completion_time += compl_time
 
