@@ -36,11 +36,14 @@ picker_list = list()
 cart_list = list()
 
 total_completion_time = list()
+average_completion_time = list()
 total_turn_over_time = list()
 average_turn_over_time = list()
 average_picker_utility = list()
 average_cart_utility = list()
 late_delivery = list()
+total_lateness = list()
+average_lateness = list()
 
 for trigger_opt in [1,2,3,4,5,6]:
     for batching_opt in [1,2]:
@@ -81,10 +84,12 @@ for trigger_opt in [1,2,3,4,5,6]:
                         total_item_picked.append(sum(trigger.total_item))
                         # Listing total completion time
                         total_completion_time.append(round(trigger.completion_time.total_seconds()/60, 2))
+                        # Listing average completion time
+                        average_completion_time.append(round(trigger.completion_time.total_seconds()/60/(trigger.current_row - 1), 2))
                         # Listing total Turonver time
                         total_turn_over_time.append(round(trigger.turn_over_time.total_seconds()/60, 2))
                         # Listing avg Turonver time
-                        average_turn_over_time.append(round(trigger.turn_over_time.total_seconds()/60/trigger.current_row, 2))
+                        average_turn_over_time.append(round(trigger.turn_over_time.total_seconds()/60/(trigger.current_row - 1), 2))
                         # Counting and listing average picker utility
                         average_picker_utility.append(trigger.ave_picker_utility)
                         # Counting & listing average cart utility
@@ -92,6 +97,10 @@ for trigger_opt in [1,2,3,4,5,6]:
                         average_cart_utility.append(ave_cart_utility)
                         # Listing total on time delivery
                         late_delivery.append(trigger.late_count)
+                        # Listing Total Lateness
+                        total_lateness.append(round(trigger.total_lateness.total_seconds()/60, 2))
+                        # Listing Average Lateness
+                        average_lateness.append(round(trigger.total_lateness.total_seconds()/(trigger.current_row - 1)/60,2))
 
                         order_file.append(fn_idx)
                         trigger_list.append(trigger_opt)
@@ -126,12 +135,14 @@ result = pd.DataFrame({
     'CartCapacity': cart_list,
     'TotalOrder': total_order,
     'CompletionTime': total_completion_time,
+    'AvgCompletionTime': average_completion_time,
     'TurnOverTime': total_turn_over_time,
     'AvgTurnOverTime': average_turn_over_time,
     'TotalItemPicked': total_item_picked,
     'AvgPickerUtil': average_picker_utility,
     'AvgCartUtil': average_cart_utility,
-    'NumOfLate': late_delivery
-    }, columns = ['OrderFile','TriggerMethod','BatchingMethod','RoutingPolicy','NumOfPickers','CartCapacity','TotalOrder','CompletionTime','TurnOverTime', 'AvgTurnOverTime','TotalItemPicked','AvgPickerUtil','AvgCartUtil','NumOfLate'])
-result.to_csv('result/All.csv', index = False)
+    'NumOfLate': late_delivery,
+    'TotalLateness': total_lateness,
+    'AvgLateness': average_lateness
+    }, columns = ['OrderFile','TriggerMethod','BatchingMethod','RoutingPolicy','NumOfPickers','CartCapacity','TotalOrder','CompletionTime','AvgCompletionTime','TurnOverTime', 'AvgTurnOverTime','TotalItemPicked','AvgPickerUtil','AvgCartUtil','NumOfLate','TotalLateness','AvgLateness'])
 print('All.csv')

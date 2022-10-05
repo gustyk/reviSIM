@@ -18,6 +18,7 @@ class pooling_triggers:
         self.file_count = 0
         self.completion_time = timedelta(seconds=0)
         self.turn_over_time = timedelta(seconds=0)
+        self.total_lateness = timedelta(seconds=0)
         self.late_count = 0
         self.start_row = 0
         # start from the second row
@@ -162,10 +163,12 @@ class pooling_triggers:
                                 self.picker_list.append(finTime)
                             self.picker_list.sort()
                     
-                            # Counting Turn Over Time
+                            # Counting Turn Over Time and Lateness
                             for order in raw_batch[idx]:
                                 tov_time = (finTime - order[0])
                                 self.turn_over_time += tov_time
+                                self.total_lateness += finTime - order[2]
+                                tots = self.total_lateness.total_seconds()
                                 if finTime > order[2]:
                                     self.late_count += 1
 
