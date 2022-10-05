@@ -27,7 +27,7 @@ total_item_picked = list()
 # Specify order limit for trigger VTWB
 max_order = 12
 # Specify urgent order limit
-max_urgent = 5
+max_urgent = 1
 
 trigger_list = list()
 batching_list = list()
