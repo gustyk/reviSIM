@@ -18,7 +18,7 @@ class triggers:
         self.tardy_order = 0
         self.start_row = 0
         # start from the second row
-        self.current_row = 1
+        self.current_row = 0
         self.total_item = 0
         self.urgent_status = 0
         self.current_pool = [[[], 0, []]]
@@ -263,7 +263,7 @@ class triggers:
             compl_time = self.routing.count_completion_time()
             
             # Calculate total completion time
-            self.all_compl_time = sum(c.seconds for c in compl_time)
+            self.all_compl_time = sum(c.total_seconds() for c in compl_time)
             
             # Update last checked row
             self.last_checked_row = self.current_row
