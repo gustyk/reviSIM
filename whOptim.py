@@ -72,7 +72,7 @@ def order_stream(trigger_opt, batching_opt, routing_opt, picker_number, cart_cap
         env.run(until=time_limit)
 
         # Listing total order
-        total_order.append(trigger.current_row - 1)
+        total_order.append(trigger.current_row)
         # Listing total total time
         total_item_picked.append(sum(trigger.total_item))
         # Listing total completion time
