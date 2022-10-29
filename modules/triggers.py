@@ -11,7 +11,6 @@ class triggers:
         self.routing = routing
         self.cart_capacity = cart_capacity
         self.cart_utility = 0
-        self.file_count = 0
         self.completion_time = timedelta(seconds=0)
         self.turn_over_time = timedelta(seconds=0)
         self.total_lateness = timedelta(seconds=0)
@@ -29,13 +28,14 @@ class triggers:
         self.all_compl_time = 0
         self.last_checked_row = 0
         self.sorted_due_list = list()
+        self.total_batch = 0
+        self.processed_order = 0
 
     def prepare (self, order_streams):
         # Start time if need to track timelapse
         # start_time = time.time()
         
         # Assign order file to process
-        self.order_streams = order_streams
         self.order_streams = order_streams.to_numpy()
         
         # Assign simulation limit
@@ -82,17 +82,6 @@ class triggers:
         raw_batch = self.batching.run(batch_orders)
         ioStation_content = self.batching.collect_batch(raw_batch)
 
-        # Counting cart utility
-        cart_uti = 0
-        f_count = 0
-        for batch in ioStation_content:
-            self.processed_item += batch[1]
-            cart_uti += round(batch[1]/self.cart_capacity, 2)
-            cart_uti = round(cart_uti, 2)
-            f_count += 1
-        self.cart_utility += round(cart_uti/len(ioStation_content), 2)
-        self.file_count += f_count
-
         # Processing routing variation
         self.routing.run(ioStation_content)
         calculated_compl_time = self.routing.count_completion_time()
@@ -103,8 +92,11 @@ class triggers:
                 yield req
                 finSeconds = compl_time.total_seconds() + timedelta(minutes=1).seconds
                 yield self.env.timeout(finSeconds)
+                self.total_batch += 1
                 self.completion_time += compl_time
                 finTime = self.initial_time + timedelta(seconds=self.env.now)
+                self.processed_order += len(raw_batch[idx])
+                batch_items = 0
                 for order in raw_batch[idx]:
                     # order[0] is createdTime
                     tov_time = (finTime - order[0])
@@ -114,6 +106,11 @@ class triggers:
                     tots = self.total_lateness.total_seconds()
                     if finTime > order[2]:
                         self.tardy_order += 1
+                    self.processed_item += order[1]
+                    batch_items += order[1]
+
+                # Counting cart utility
+                self.cart_utility += round(batch_items/self.cart_capacity, 2)
 
         # Looping condition
         self.start_row = self.current_row

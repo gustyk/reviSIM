@@ -41,6 +41,7 @@ average_cart_utility = list()
 total_tardy_order = list()
 total_lateness = list()
 average_lateness = list()
+total_batches = list()
 
 time_limit = timedelta(hours=8).seconds
 
@@ -72,29 +73,31 @@ def order_stream(trigger_opt, batching_opt, routing_opt, picker_number, cart_cap
         env.run(until=time_limit)
 
         # Listing total order
-        total_order.append(trigger.current_row)
+        total_order.append(trigger.processed_order)
         # Listing total total time
-        total_item_picked.append(sum(trigger.total_item))
+        total_item_picked.append(trigger.processed_item)
         # Listing total completion time
         total_completion_time.append(round(trigger.completion_time.total_seconds()/60, 2))
         # Listing average completion time
-        average_completion_time.append(round(trigger.completion_time.total_seconds()/60/(trigger.current_row - 1), 2))
+        average_completion_time.append(round(trigger.completion_time.total_seconds()/60/(trigger.processed_order), 2))
         # Listing total Turonver time
         total_turn_over_time.append(round(trigger.turn_over_time.total_seconds()/60, 2))
         # Listing avg Turonver time
-        average_turn_over_time.append(round(trigger.turn_over_time.total_seconds()/60/(trigger.current_row - 1), 2))
+        average_turn_over_time.append(round(trigger.turn_over_time.total_seconds()/60/(trigger.processed_order), 2))
         # Counting and listing average picker utility
         ave_picker_utility = round(trigger.completion_time/(timedelta(hours=8)*picker_number), 2)
         average_picker_utility.append(ave_picker_utility)
         # Counting & listing average cart utility
-        ave_cart_utility = round(trigger.cart_utility/trigger.num_triggered, 2)
+        ave_cart_utility = round(trigger.cart_utility/trigger.total_batch, 2)
         average_cart_utility.append(ave_cart_utility)
         # Listing total on time delivery
         total_tardy_order.append(trigger.tardy_order)
         # Listing Total Lateness
         total_lateness.append(round(trigger.total_lateness.total_seconds()/60, 2))
         # Listing Average Lateness
-        average_lateness.append(round(trigger.total_lateness.total_seconds()/(trigger.current_row - 1)/60,2))
+        average_lateness.append(round(trigger.total_lateness.total_seconds()/(trigger.processed_order)/60,2))
+        # Listing Total Batches Processed
+        total_batches.append(trigger.total_batch)
 
         order_file.append(fn_idx)
         trigger_list.append(trigger_opt)
@@ -137,6 +140,7 @@ def result_generator():
         'NumOfPickers': picker_list,
         'CartCapacity': cart_list,
         'TotalOrder': total_order,
+        'TotalBatch': total_batches,
         'CompletionTime': total_completion_time,
         'AvgCompletionTime': average_completion_time,
         'TurnOverTime': total_turn_over_time,
@@ -147,7 +151,7 @@ def result_generator():
         'NumOfLate': total_tardy_order,
         'TotalLateness': total_lateness,
         'AvgLateness': average_lateness
-        }, columns = ['OrderFile','TriggerMethod','BatchingMethod','RoutingPolicy','NumOfPickers','CartCapacity','TotalOrder','CompletionTime','AvgCompletionTime','TurnOverTime', 'AvgTurnOverTime','TotalItemPicked','AvgPickerUtil','AvgCartUtil','NumOfLate','TotalLateness','AvgLateness'])
+        }, columns = ['OrderFile','TriggerMethod','BatchingMethod','RoutingPolicy','NumOfPickers','CartCapacity','TotalOrder','TotalBatch','CompletionTime','AvgCompletionTime','TurnOverTime', 'AvgTurnOverTime','TotalItemPicked','AvgPickerUtil','AvgCartUtil','NumOfLate','TotalLateness','AvgLateness'])
     result.to_csv('result/All.csv')
     print('All.csv')
 
