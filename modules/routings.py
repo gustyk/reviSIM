@@ -1,15 +1,38 @@
 from datetime import timedelta
+from modules import general_function as gf
+
+import copy
+
 class routings:
     def __init__(self, opt):
         self.opt = opt
         
     def run(self, filelist):
-        self.filelist = filelist
+        self.filelist = copy.deepcopy(filelist)
         if self.opt == 1:
             return self.s_shape()
         elif self.opt == 2:
             return self.largest_gap()
-    
+
+    def test(self):
+        # Reading order file
+        fname = gf.reading_file()
+        compl_time = list()
+        for fn in fname:
+            np_fn = fn.to_numpy()
+            self.filelist = [[[], 0]]
+            for idx, order in enumerate(np_fn):
+                for position in order[3]:
+                    self.filelist[0][0].append(position)
+                self.filelist[0][1] += order[1]
+            if self.opt == 1:
+                self.s_shape()
+            elif self.opt == 2:
+                self.largest_gap()
+            
+            compl_time.append(self.count_completion_time())
+        return compl_time
+            
     def s_shape(self):
         # s-shape
         for file in self.filelist:
