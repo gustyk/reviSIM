@@ -1,4 +1,5 @@
 # Import libraries
+import math
 from sys import exit
 import os
 import re
@@ -52,7 +53,13 @@ def string_to_list(string):
 
 # Convert position
 def position(pos):
-    return [((int(pos))//16)+1, [(((int(pos))%16)//2)+1]]
+    pos1 = (pos - 1) // 32 + 1
+    pos2a = math.ceil(((pos % 32) / 2))
+    if pos2a == 0:
+        pos2 = 16
+    else:
+        pos2 = pos2a
+    return [pos1, [pos2]]
 
 # Collecting position from list
 def collect_position(filelist):
