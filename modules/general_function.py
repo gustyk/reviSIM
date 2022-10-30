@@ -53,8 +53,8 @@ def string_to_list(string):
 
 # Convert position
 def position(pos):
-    pos1 = (pos - 1) // 32 + 1
-    pos2a = math.ceil(((pos % 32) / 2))
+    pos1 = (int(pos) - 1) // 32 + 1
+    pos2a = math.ceil(((int(pos) % 32) / 2))
     if pos2a == 0:
         pos2 = 16
     else:
