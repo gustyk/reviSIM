@@ -78,26 +78,33 @@ def order_stream(trigger_opt, batching_opt, routing_opt, picker_number, cart_cap
         total_item_picked.append(trigger.processed_item)
         # Listing total completion time
         total_completion_time.append(round(trigger.completion_time.total_seconds()/60, 2))
-        # Listing average completion time
-        average_completion_time.append(round(trigger.completion_time.total_seconds()/60/(trigger.processed_order), 2))
         # Listing total Turonver time
         total_turn_over_time.append(round(trigger.turn_over_time.total_seconds()/60, 2))
-        # Listing avg Turonver time
-        average_turn_over_time.append(round(trigger.turn_over_time.total_seconds()/60/(trigger.processed_order), 2))
         # Counting and listing average picker utility
         ave_picker_utility = round(trigger.completion_time/(timedelta(hours=8)*picker_number), 2)
         average_picker_utility.append(ave_picker_utility)
-        # Counting & listing average cart utility
-        ave_cart_utility = round(trigger.cart_utility/trigger.total_batch, 2)
-        average_cart_utility.append(ave_cart_utility)
         # Listing total on time delivery
         total_tardy_order.append(trigger.tardy_order)
         # Listing Total Lateness
         total_lateness.append(round(trigger.total_lateness.total_seconds()/60, 2))
-        # Listing Average Lateness
-        average_lateness.append(round(trigger.total_lateness.total_seconds()/(trigger.processed_order)/60,2))
         # Listing Total Batches Processed
         total_batches.append(trigger.total_batch)
+
+        if (trigger.processed_order > 0):
+            # Listing average completion time
+            average_completion_time.append(round(trigger.completion_time.total_seconds()/60/(trigger.processed_order), 2))
+            # Listing avg Turonver time
+            average_turn_over_time.append(round(trigger.turn_over_time.total_seconds()/60/(trigger.processed_order), 2))
+            # Counting & listing average cart utility
+            ave_cart_utility = round(trigger.cart_utility/trigger.total_batch, 2)
+            average_cart_utility.append(ave_cart_utility)
+            # Listing Average Lateness
+            average_lateness.append(round(trigger.total_lateness.total_seconds()/(trigger.processed_order)/60,2))
+        else:
+            average_completion_time.append(0)
+            average_turn_over_time.append(0)
+            average_cart_utility.append(0)
+            average_lateness.append(0)
 
         order_file.append(fn_idx)
         trigger_list.append(trigger_opt)
