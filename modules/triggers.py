@@ -131,7 +131,7 @@ class triggers:
         time_limit = delta
         while True and self.current_row < self.total_order:
             self.add_order_to_op()
-            if self.env.now >= time_limit or self.current_row == self.total_order - 1:
+            if self.env.now >= time_limit:
                 if self.env.now > time_limit:
                     self.back_order += 1
                 self.num_triggered += 1
@@ -150,7 +150,7 @@ class triggers:
         max_order_batch = order_batch
         while True and self.current_row < self.total_order:
             self.add_order_to_op()
-            if self.current_row >= max_order_batch or self.current_row == self.total_order - 1:
+            if self.current_row >= max_order_batch:
                 # If current order row exceed order limit go back n row
                 # until fits in order limit
                 if self.current_row > max_order_batch:
@@ -173,7 +173,7 @@ class triggers:
         # Max Picker
         while True and self.current_row < self.total_order:
             self.add_order_to_op()
-            if (self.pickers.count < self.pickers.capacity and self.current_row - self.start_row != 0) or self.current_row == self.total_order - 1:
+            if (self.pickers.count < self.pickers.capacity and self.current_row - self.start_row != 0):
                 self.num_triggered += 1
                 self.env.process(self.picking_process())
             
@@ -187,7 +187,7 @@ class triggers:
         # Max Cart
         while True and self.current_row < self.total_order:
             self.add_order_to_op()
-            if (self.current_pool[0][1] >= self.cart_capacity and (self.current_row - 1) - self.start_row != 0) or self.current_row == self.total_order - 1:
+            if (self.current_pool[0][1] >= self.cart_capacity and (self.current_row - 1) - self.start_row != 0):
                 # If current pool cache total qty exceed cart capacity limit go back n row
                 # until fits in order limit
                 if self.current_pool[0][1] > self.cart_capacity:
@@ -210,7 +210,7 @@ class triggers:
             self.add_order_to_op()
         # check urgent order
             self.check_urgent()
-            if self.urgent_status >= max_urgent or (self.pickers.count < self.pickers.capacity and self.current_row - self.start_row != 0) or self.current_row == self.total_order - 1:
+            if self.urgent_status >= max_urgent or (self.pickers.count < self.pickers.capacity and self.current_row - self.start_row != 0):
                 self.num_triggered += 1
                 self.env.process(self.picking_process())
             
@@ -227,7 +227,7 @@ class triggers:
             self.add_order_to_op()
             # check urgent order
             self.check_urgent()
-            if self.urgent_status >= max_urgent or (self.current_pool[0][1] >= self.cart_capacity and (self.current_row - 1) - self.start_row != 0) or self.current_row == self.total_order - 1:
+            if self.urgent_status >= max_urgent or (self.current_pool[0][1] >= self.cart_capacity and (self.current_row - 1) - self.start_row != 0):
                 # If current pool cache total qty exceed cart capacity limit go back n row
                 # until fits in order limit
                 if self.current_pool[0][1] > self.cart_capacity:
