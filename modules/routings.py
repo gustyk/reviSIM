@@ -50,13 +50,15 @@ class routings:
             position = file[0]
             if len(position) == 1:
                 distance = (position[-1][0]-1)*4 + position[-1][1][-1]*2 - 1
+            elif len(position) == 2:
+                distance = (position[-1][0]-1)*4 + 32
             else:
-                distance = position[-1][0]-1 + 8
-                a = 0
+                distance = (position[-1][0]-1) * 4 + 32
+                a = 1
                 while a < (len(position))-1:
                     dt = position[a][1]
                     dt.insert(0, 0)
-                    dt.append(16)
+                    dt.append(17)
                     gap = []
                     b = 1
                     while b < len(dt):
@@ -65,9 +67,9 @@ class routings:
                         b += 1
                     gap.sort()
                     gap.pop()
-                    distance += sum(gap)
+                    totgap = sum(gap)
+                    distance = distance + (totgap*2) - 1
                     a += 1
-                distance *= 2
             file[0] = distance
         return self.filelist
 
