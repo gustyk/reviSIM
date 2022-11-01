@@ -115,6 +115,11 @@ def order_stream(trigger_opt, batching_opt, routing_opt, picker_number, cart_cap
 
         fn_idx += 1
 
+        if (trigger.print_io_station):
+            dfIoS = pd.DataFrame(trigger.print_ioStation, columns =['BatchID', 'Content', 'StartingTime', 'FinishingTime'])
+            print('IoStation Content')
+            print(dfIoS)
+
 def result_generator():
     trigger_opts = [1,2,3,4,5,6]
     batching_opts = [1,2]

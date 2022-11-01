@@ -31,6 +31,8 @@ class triggers:
         self.total_batch = 0
         self.processed_order = 0
         self.print_io_station = False
+        self.print_ioStation = list()
+
 
     def prepare (self, order_streams):
         # Start time if need to track timelapse
@@ -89,16 +91,6 @@ class triggers:
         raw_batch = self.batching.run(batch_orders)
         ioStation_content = self.batching.collect_batch(raw_batch)
 
-        if self.print_io_station:
-            print_ioStation = list()
-            for idxb, batch in enumerate(ioStation_content):
-                for idxo, orders in enumerate(batch[0]):
-                    for row in orders[1]:
-                        print_ioStation.append([idxb+1, idxo+1, orders[0], row])
-            dfIoS = pd.DataFrame(print_ioStation, columns =['Batch Num', 'Order Num', 'Aisle', 'Row'])
-            print('IoStation Content')
-            print(dfIoS)
-
         # Processing routing variation
         self.routing.run(ioStation_content)
         calculated_compl_time = self.routing.count_completion_time()
@@ -128,6 +120,8 @@ class triggers:
                 # Counting cart utility
                 self.cart_utility += round(batch_items/self.cart_capacity, 2)
 
+                if self.print_io_station:
+                    self.print_ioStation.append([self.total_batch, len(raw_batch[idx]), self.initial_time + timedelta(seconds=self.env.now), finTime])
                 # Advance time
                 yield self.env.timeout(finSeconds)
 
