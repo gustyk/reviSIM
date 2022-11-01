@@ -102,7 +102,7 @@ class triggers:
                 finSeconds = compl_time.total_seconds() + timedelta(minutes=1).seconds
                 self.total_batch += 1
                 self.completion_time += compl_time
-                finTime = self.initial_time + timedelta(seconds=self.env.now)
+                finTime = self.initial_time + timedelta(seconds=self.env.now+finSeconds)
                 self.processed_order += len(raw_batch[idx])
                 batch_items = 0
                 for order in raw_batch[idx]:
@@ -122,6 +122,7 @@ class triggers:
 
                 if self.print_io_station:
                     self.print_ioStation.append([self.total_batch, len(raw_batch[idx]), self.initial_time + timedelta(seconds=self.env.now), finTime])
+
                 # Advance time
                 yield self.env.timeout(finSeconds)
 
