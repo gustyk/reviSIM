@@ -26,11 +26,11 @@ class triggers:
         self.batch_orders = list()
         self.back_order = 0
         self.all_compl_time = 0
-        self.last_checked_row = 0
+        self.last_checked_row = -1
         self.sorted_due_list = list()
         self.total_batch = 0
         self.processed_order = 0
-        self.debug = True
+        self.print_io_station = False
 
     def prepare (self, order_streams):
         # Start time if need to track timelapse
@@ -89,7 +89,7 @@ class triggers:
         raw_batch = self.batching.run(batch_orders)
         ioStation_content = self.batching.collect_batch(raw_batch)
 
-        if self.debug:
+        if self.print_io_station:
             print_ioStation = list()
             for idxb, batch in enumerate(ioStation_content):
                 for idxo, orders in enumerate(batch[0]):
@@ -142,7 +142,7 @@ class triggers:
         # FTWB
         delta = timedelta(minutes=12).seconds
         time_limit = delta
-        while True and self.current_row < self.total_order:
+        while self.current_row < self.total_order:
             self.add_order_to_op()
             if self.env.now >= time_limit:
                 if self.env.now > time_limit:
@@ -151,11 +151,25 @@ class triggers:
                 self.env.process(self.picking_process())
                 time_limit += delta
 
-            yield self.env.timeout((self.created_time[self.current_row] - self.last_time).seconds)
-
-            self.last_time = self.created_time[self.current_row]
+            local_last_row = self.current_row
+            local_last_time = self.last_time
+            
             # Advance next order data
+            self.last_time = self.created_time[self.current_row]
             self.current_row += 1
+            
+            yield self.env.timeout((self.created_time[local_last_row] - local_last_time).seconds)
+        
+        self.current_row -= 1
+
+        while self.current_pool[0][1] > 0:
+            yield self.env.timeout(1)
+            if self.env.now >= time_limit:
+                if self.env.now > time_limit:
+                    self.back_order += 1
+                self.num_triggered += 1
+                self.env.process(self.picking_process())
+                time_limit += delta
 
     def vtwb(self):
         # VTWB
@@ -175,32 +189,38 @@ class triggers:
                 self.num_triggered += 1
                 self.env.process(self.picking_process())
                 max_order_batch += order_batch
-            
-            yield self.env.timeout((self.created_time[self.current_row] - self.last_time).seconds)
 
-            self.last_time = self.created_time[self.current_row]
+            local_last_row = self.current_row
+            local_last_time = self.last_time
+            
             # Advance next order data
+            self.last_time = self.created_time[self.current_row]
             self.current_row += 1
+            
+            yield self.env.timeout((self.created_time[local_last_row] - local_last_time).seconds)
             
     def max_picker(self):
         # Max Picker
         while True and self.current_row < self.total_order:
             self.add_order_to_op()
-            if (self.pickers.count < self.pickers.capacity and self.current_row - self.start_row != 0):
+            if (self.pickers.count < self.pickers.capacity):
                 self.num_triggered += 1
                 self.env.process(self.picking_process())
-            
-            yield self.env.timeout((self.created_time[self.current_row] - self.last_time).seconds)
 
-            self.last_time = self.created_time[self.current_row]
+            local_last_row = self.current_row
+            local_last_time = self.last_time
+            
             # Advance next order data
+            self.last_time = self.created_time[self.current_row]
             self.current_row += 1
+            
+            yield self.env.timeout((self.created_time[local_last_row] - local_last_time).seconds)
 
     def max_cart(self):
         # Max Cart
         while True and self.current_row < self.total_order:
             self.add_order_to_op()
-            if (self.current_pool[0][1] >= self.cart_capacity and (self.current_row - 1) - self.start_row != 0):
+            if (self.current_pool[0][1] >= self.cart_capacity):
                 # If current pool cache total qty exceed cart capacity limit go back n row
                 # until fits in order limit
                 if self.current_pool[0][1] > self.cart_capacity:
@@ -210,33 +230,52 @@ class triggers:
                 self.num_triggered += 1
                 self.env.process(self.picking_process())
 
-            yield self.env.timeout((self.created_time[self.current_row] - self.last_time).seconds)
-
-            self.last_time = self.created_time[self.current_row]
+            local_last_row = self.current_row
+            local_last_time = self.last_time
+            
             # Advance next order data
+            self.last_time = self.created_time[self.current_row]
             self.current_row += 1
+            
+            yield self.env.timeout((self.created_time[local_last_row] - local_last_time).seconds)
     
     def ug_max_picker(self):
         # Urgent First + Max Picker
         max_urgent = 1
-        while True and self.current_row < self.total_order:
+        while self.current_row < self.total_order:
             self.add_order_to_op()
         # check urgent order
             self.check_urgent()
-            if self.urgent_status >= max_urgent or (self.pickers.count < self.pickers.capacity and self.current_row - self.start_row != 0):
+            if self.urgent_status >= max_urgent or (self.pickers.count < self.pickers.capacity):
                 self.num_triggered += 1
                 self.env.process(self.picking_process())
-            
-            yield self.env.timeout((self.created_time[self.current_row] - self.last_time).seconds)
 
-            self.last_time = self.created_time[self.current_row]
+            local_last_row = self.current_row
+            local_last_time = self.last_time
+            
             # Advance next order data
+            self.last_time = self.created_time[self.current_row]
             self.current_row += 1
+            
+            yield self.env.timeout((self.created_time[local_last_row] - local_last_time).seconds)
+        
+        self.current_row -= 1
+        while self.current_pool[0][1] > 0:
+            yield self.env.timeout(1)
+            self.last_checked_row = -1
+            self.check_urgent()
+            if self.urgent_status >= max_urgent or self.current_pool[0][1] >= self.cart_capacity:
+                if self.current_pool[0][1] > self.cart_capacity:
+                    self.back_order += 1
+                    while sum(self.current_pool[0][2][:-self.back_order]) > self.cart_capacity:
+                        self.back_order += 1
+                self.num_triggered += 1
+                self.env.process(self.picking_process())
 
     def ug_max_cart(self):
         # Urgent First + Max Cart
         max_urgent = 1
-        while True and self.current_row < self.total_order:
+        while self.current_row < self.total_order:
             self.add_order_to_op()
             # check urgent order
             self.check_urgent()
@@ -249,12 +288,28 @@ class triggers:
                         self.back_order += 1
                 self.num_triggered += 1
                 self.env.process(self.picking_process())
-            
-            yield self.env.timeout((self.created_time[self.current_row] - self.last_time).seconds)
 
-            self.last_time = self.created_time[self.current_row]
+            local_last_row = self.current_row
+            local_last_time = self.last_time
+            
             # Advance next order data
+            self.last_time = self.created_time[self.current_row]
             self.current_row += 1
+            
+            yield self.env.timeout((self.created_time[local_last_row] - local_last_time).seconds)
+
+        self.current_row -= 1
+        while self.current_pool[0][1] > 0:
+            yield self.env.timeout(1)
+            self.last_checked_row = -1
+            self.check_urgent()
+            if self.urgent_status >= max_urgent or self.current_pool[0][1] >= self.cart_capacity:
+                if self.current_pool[0][1] > self.cart_capacity:
+                    self.back_order += 1
+                    while sum(self.current_pool[0][2][:-self.back_order]) > self.cart_capacity:
+                        self.back_order += 1
+                self.num_triggered += 1
+                self.env.process(self.picking_process())
 
     def check_urgent(self):
         # Check urgent order
@@ -279,7 +334,7 @@ class triggers:
             self.last_checked_row = self.current_row
             
             # Update sorted due list
-            self.sorted_due_list = sorted(self.order_streams[self.start_row:self.current_row, 2])
+            self.sorted_due_list = sorted(self.order_streams[self.start_row:max(1,self.current_row), 2])
         
         # Calculate check time and compare with order due
         check_time = self.initial_time + timedelta(seconds=(self.env.now + self.all_compl_time))
