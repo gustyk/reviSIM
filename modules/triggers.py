@@ -171,10 +171,10 @@ class triggers:
         max_order_batch = order_batch
         while True and self.current_row < self.total_order:
             self.add_order_to_op()
-            if self.current_row >= max_order_batch:
+            if self.current_row >= max_order_batch - 1:
                 # If current order row exceed order limit go back n row
                 # until fits in order limit
-                if self.current_row > max_order_batch:
+                if self.current_row > max_order_batch - 1:
                     self.back_order += 1
                     orderNum = copy.copy(self.current_row)
                     while orderNum > max_order_batch:
