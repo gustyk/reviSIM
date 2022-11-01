@@ -30,6 +30,7 @@ class triggers:
         self.sorted_due_list = list()
         self.total_batch = 0
         self.processed_order = 0
+        self.debug = True
 
     def prepare (self, order_streams):
         # Start time if need to track timelapse
@@ -78,9 +79,25 @@ class triggers:
                 batch_orders = self.order_streams[self.start_row:self.current_row+1]
             self.current_pool = [[[], 0, []]]
 
+        # Looping condition
+        self.start_row = self.current_row
+        
+        # Reset back order count
+        self.back_order = 0
+
         # Processing batching
         raw_batch = self.batching.run(batch_orders)
         ioStation_content = self.batching.collect_batch(raw_batch)
+
+        if self.debug:
+            print_ioStation = list()
+            for idxb, batch in enumerate(ioStation_content):
+                for idxo, orders in enumerate(batch[0]):
+                    for row in orders[1]:
+                        print_ioStation.append([idxb+1, idxo+1, orders[0], row])
+            dfIoS = pd.DataFrame(print_ioStation, columns =['Batch Num', 'Order Num', 'Aisle', 'Row'])
+            print('IoStation Content')
+            print(dfIoS)
 
         # Processing routing variation
         self.routing.run(ioStation_content)
@@ -91,7 +108,6 @@ class triggers:
             with self.pickers.request() as req:
                 yield req
                 finSeconds = compl_time.total_seconds() + timedelta(minutes=1).seconds
-                yield self.env.timeout(finSeconds)
                 self.total_batch += 1
                 self.completion_time += compl_time
                 finTime = self.initial_time + timedelta(seconds=self.env.now)
@@ -112,11 +128,8 @@ class triggers:
                 # Counting cart utility
                 self.cart_utility += round(batch_items/self.cart_capacity, 2)
 
-        # Looping condition
-        self.start_row = self.current_row
-        
-        # Reset back order count
-        self.back_order = 0
+                # Advance time
+                yield self.env.timeout(finSeconds)
 
     def add_order_to_op(self):
         if (self.current_row < self.total_order):
