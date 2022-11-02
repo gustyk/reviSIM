@@ -141,22 +141,19 @@ class triggers:
         delta = timedelta(minutes=12).seconds
         time_limit = delta
         while self.current_row < self.total_order:
-            self.add_order_to_op()
-            if self.env.now >= time_limit:
-                if self.env.now > time_limit:
-                    self.back_order += 1
+            if self.env.now == time_limit:
                 self.num_triggered += 1
                 self.batching_routing()
                 time_limit += delta
 
-            local_last_row = self.current_row
-            local_last_time = self.last_time
-            
             # Advance next order data
-            self.last_time = self.created_time[self.current_row]
-            self.current_row += 1
+            current_time = self.initial_time + timedelta(seconds=self.env.now)
+            if current_time == self.created_time[self.current_row]:
+                while self.current_row < self.total_order and current_time == self.created_time[self.current_row]:
+                    self.add_order_to_op()
+                    self.current_row += 1
             
-            yield self.env.timeout((self.created_time[local_last_row] - local_last_time).seconds)
+            yield self.env.timeout(1)
         
         self.current_row -= 1
 
