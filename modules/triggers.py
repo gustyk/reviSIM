@@ -105,7 +105,7 @@ class triggers:
         # No need to go back order, take complete batch
         # and empty order pool cache
         else:
-            if (self.start_row < self.current_row):
+            if (self.start_row < self.current_row and self.current_row != self.total_order - 1):
                 batch_orders = self.order_streams[self.start_row:self.current_row]
             else:
                 batch_orders = self.order_streams[self.start_row:self.current_row+1]
