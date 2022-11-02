@@ -116,7 +116,7 @@ def order_stream(trigger_opt, batching_opt, routing_opt, picker_number, cart_cap
         fn_idx += 1
 
         if (trigger.print_io_station):
-            dfIoS = pd.DataFrame(trigger.print_ioStation, columns =['BatchID', 'Content', 'StartingTime', 'FinishingTime'])
+            dfIoS = pd.DataFrame(trigger.print_ioStation, columns =['TriggerID', 'OrderIDs', 'BatchID', 'OrderCount', 'StartingTime', 'FinishingTime'])
             print('IoStation Content')
             print(dfIoS)
 
