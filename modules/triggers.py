@@ -234,7 +234,7 @@ class triggers:
             self.add_order_to_op()
         # check urgent order
             self.check_urgent()
-            if self.urgent_status >= max_urgent or (self.pickers.count < self.pickers.capacity and self.current_pool[0][1] > 0):
+            if self.urgent_status >= max_urgent or (self.pickers.count == 0 and self.current_pool[0][1] > 0):
                 self.batching_routing()
 
             # Advance next order data
@@ -246,7 +246,7 @@ class triggers:
             yield self.env.timeout(1)
             self.last_checked_row = -1
             self.check_urgent()
-            if self.urgent_status >= max_urgent or self.pickers.count < self.pickers.capacity and self.current_pool[0][1] > 0:
+            if self.urgent_status >= max_urgent or self.pickers.count == 0 and self.current_pool[0][1] > 0:
                 self.batching_routing()
 
     def ug_max_cart(self):
