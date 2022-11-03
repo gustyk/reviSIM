@@ -31,11 +31,22 @@ def reading_file():
         fn['Due Time'] = dueTime
         pos = fn['Order List'].to_list()
         b = 0
+        mismatch_qty_idx = list()
         while b < len(pos):
             pos[b] = string_to_list(pos[b])
+            total_qty = sum(int(qty) for _, qty in pos[b])
+            if total_qty != fn['Total Item'][b]:
+                mismatch_qty_idx.append(b)
+                b += 1
+                continue
             pos[b] = collect_position(pos[b])
             pos[b] = sort_position(pos[b])
             b += 1
+        if len(mismatch_qty_idx) > 0:
+            print('Mismatch Qty and Total Item Dropped')
+            print(fn.iloc[mismatch_qty_idx])
+            fn.drop(index=fn.iloc[mismatch_qty_idx].index.tolist(), inplace=True)
+            pos = [i for j, i in enumerate(pos) if j not in mismatch_qty_idx]
         fn['Position'] = pos
         fn.drop('Order List', axis=1, inplace=True)
         fname.append(fn)
