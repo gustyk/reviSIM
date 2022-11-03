@@ -92,9 +92,6 @@ class triggers:
         # If need to go back one order
         if self.back_order > 0:
             # Shift order batch taking minus back order count
-            # if (self.start_row < self.current_row):
-            #     batch_orders = self.order_streams[max(0, self.start_row-self.back_order):self.current_row-self.back_order]
-            # else:
             batch_orders = self.order_streams[max(0, self.start_row-self.back_order):self.current_row+1-self.back_order]
 
             # Update order pool cache
@@ -108,9 +105,6 @@ class triggers:
         # No need to go back order, take complete batch
         # and empty order pool cache
         else:
-            # if (self.start_row < self.current_row and self.current_row != self.total_order - 1):
-            #     batch_orders = self.order_streams[self.start_row:self.current_row]
-            # else:
             batch_orders = self.order_streams[self.start_row:self.current_row+1]
             self.current_pool = [[[], 0, []]]
 
@@ -146,6 +140,8 @@ class triggers:
         # FTWB
         delta = timedelta(minutes=12).seconds
         time_limit = delta
+        next_time = self.created_time[self.current_row]
+        self.current_row = -1
         while self.current_row < self.total_order:
             yield self.env.timeout(1)
 
@@ -155,10 +151,11 @@ class triggers:
 
             # Advance next order data
             current_time = self.initial_time + timedelta(seconds=self.env.now)
-            if current_time == self.created_time[self.current_row]:
-                while self.current_row < self.total_order and current_time == self.created_time[self.current_row]:
+            if current_time == next_time:
+                while self.current_row < self.total_order and current_time == next_time:
                     self.add_order_to_op()
                     self.current_row += 1
+                    next_time = self.created_time[min(self.current_row+1, self.total_order-1)]
         
         self.current_row -= 1
 
