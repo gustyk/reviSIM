@@ -92,7 +92,7 @@ class triggers:
         # If need to go back one order
         if self.back_order > 0:
             # Shift order batch taking minus back order count
-            batch_orders = self.order_streams[max(0, self.start_row-self.back_order):self.current_row+1-self.back_order]
+            batch_orders = self.order_streams[self.start_row:self.current_row+1-self.back_order]
 
             # Update order pool cache
             item_qty = self.total_item[self.current_row+1-self.back_order:self.current_row+1]
@@ -100,8 +100,12 @@ class triggers:
             self.current_pool[0][1] = sum(item_qty)
             self.current_pool[0][2] = item_qty.tolist()
 
-            trigger_start_row = max(0, self.start_row-self.back_order) + 1
+            trigger_start_row = self.start_row + 1
             trigger_end_row = self.current_row+1-self.back_order
+            
+            # Looping condition
+            self.start_row = self.current_row
+
         # No need to go back order, take complete batch
         # and empty order pool cache
         else:
@@ -110,8 +114,9 @@ class triggers:
 
             trigger_start_row = self.start_row + 1
             trigger_end_row = self.current_row + 1
-        # Looping condition
-        self.start_row = self.current_row+1
+            
+            # Looping condition
+            self.start_row = self.current_row+1
         
         # Reset back order count
         last_back_order = self.back_order
@@ -157,8 +162,6 @@ class triggers:
                     self.current_row += 1
                     next_time = self.created_time[min(self.current_row+1, self.total_order-1)]
         
-        self.current_row -= 1
-
         while self.current_pool[0][1] > 0:
             yield self.env.timeout(1)
             if self.env.now >= time_limit:
@@ -202,7 +205,6 @@ class triggers:
             self.last_time = self.created_time[self.current_row]
             self.current_row += 1
 
-        self.current_row -= 1
         while self.current_pool[0][1] > 0:
             yield self.env.timeout(1)
             if self.pickers.count < self.pickers.capacity and self.current_pool[0][1] > 0:
@@ -241,7 +243,6 @@ class triggers:
             self.last_time = self.created_time[self.current_row]
             self.current_row += 1
             
-        self.current_row -= 1
         while self.current_pool[0][1] > 0:
             yield self.env.timeout(1)
             self.last_checked_row = -1
@@ -270,7 +271,6 @@ class triggers:
             self.last_time = self.created_time[self.current_row]
             self.current_row += 1
 
-        self.current_row -= 1
         while self.current_pool[0][1] > 0:
             yield self.env.timeout(1)
             self.last_checked_row = -1
