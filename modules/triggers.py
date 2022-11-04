@@ -4,7 +4,7 @@ from datetime import timedelta
 import copy
 
 class triggers:
-    def __init__(self, env, pickers, batching, routing, cart_capacity):
+    def __init__(self, env, pickers, batching, routing, cart_capacity, urgent_threshold):
         self.env = env
         self.pickers = pickers
         self.batching = batching
@@ -32,7 +32,7 @@ class triggers:
         self.processed_order = 0
         self.print_io_station = True
         self.print_ioStation = list()
-
+        self.urgent_threshold = urgent_threshold
 
     def prepare (self, order_streams):
         # Start time if need to track timelapse
@@ -123,7 +123,7 @@ class triggers:
         self.back_order = 0
 
         # Processing batching
-        raw_batch = self.batching.run(batch_orders)
+        raw_batch = self.batching.run(batch_orders, self.initial_time + timedelta(seconds=self.env.now))
         ioStation_content = self.batching.collect_batch(raw_batch)
 
         # Processing routing variation
@@ -308,7 +308,7 @@ class triggers:
             self.sorted_due_list = sorted(self.order_streams[self.start_row:max(1,self.current_row), 2])
         
         # Calculate check time and compare with order due
-        check_time = self.initial_time + timedelta(seconds=(self.env.now + self.all_compl_time))
+        check_time = self.initial_time + timedelta(seconds=(self.env.now + self.all_compl_time + self.urgent_threshold))
         idx = 0
         while idx < len(self.sorted_due_list) and check_time > self.sorted_due_list[idx]:
             self.urgent_status += 1

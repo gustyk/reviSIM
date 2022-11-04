@@ -1,17 +1,21 @@
 from modules import general_function as gf
 import numpy as np
+from datetime import timedelta
 
 class batchings:
-    def __init__(self, opt, cart_capacity):
+    def __init__(self, opt, cart_capacity, routing, urgent_threshold):
         self.opt = opt
         self.cart_capacity = cart_capacity
+        self.routing = routing
+        self.urgent_threshold = urgent_threshold
     
-    def run(self, file):
+    def run(self, file, current_time=None):
         self.file = file
+        self.current_time = current_time
         if self.opt == 1:
             return self.fcfs()
         elif self.opt == 2:
-            return self.seed_due()
+            return self.seed_due_late()
 
     def fcfs(self):
         # fcfs
@@ -221,6 +225,45 @@ class batchings:
             rfile.append(fl)
         return rfile
     
+    def seed_due_late(self):
+        # seed
+        # sort by due ascending
+        self.file = self.file[self.file[:, 2].argsort()]
+        rfile = list()
+        a = 0
+        b = 0
+        total = 0
+        i = 0
+        tempfile = list()
+        while i < len(self.file):
+            total += self.file[i][1] - 1
+            late = False
+            
+            tempfile = self.file[a:b]
+            if len(tempfile) > 0:
+                to_routing = self.collect_batch([tempfile])
+                self.routing.run(to_routing)
+                compl_time = self.routing.count_completion_time()
+                all_compl_time = sum(c.total_seconds() for c in compl_time)
+                check_time = self.current_time + timedelta(seconds=all_compl_time+self.urgent_threshold)
+                if check_time >= self.file[i-1][2]:
+                    late = True
+
+            if total > self.cart_capacity or late:
+                fl = self.file[a:b]
+                a = b
+                total = self.file[i][1]
+                tempfile = list()
+                if len(fl) > 0:
+                    rfile.append(fl)
+            
+            b += 1
+            i += 1
+        fl = self.file[a:]
+        if len(fl) > 0:
+            rfile.append(fl)
+        return rfile
+
     def collect_batch(self, filelist):
         # Collect position and total item from batching
         rfile = list()

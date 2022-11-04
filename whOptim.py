@@ -21,10 +21,8 @@ total_order = list()
 # Counting total item picked
 total_item_picked = list()
 
-# Specify order limit for trigger VTWB
-max_order = 12
-# Specify urgent order limit
-max_urgent = 1
+# Specify urgent threshold in seconds
+urgent_threshold = 300
 
 trigger_list = list()
 batching_list = list()
@@ -50,9 +48,9 @@ def order_stream(trigger_opt, batching_opt, routing_opt, picker_number, cart_cap
     for fn in fname:    
         env = simpy.Environment()
         picker_pool = simpy.Resource(env, capacity=picker_number)
-        batching = batchings.batchings(batching_opt, cart_capacity)
         routing = routings.routings(routing_opt)
-        trigger = triggers.triggers(env, picker_pool, batching, routing, cart_capacity)
+        batching = batchings.batchings(batching_opt, cart_capacity, routing, urgent_threshold)
+        trigger = triggers.triggers(env, picker_pool, batching, routing, cart_capacity, urgent_threshold)
 
         trigger.prepare(fn)
 
