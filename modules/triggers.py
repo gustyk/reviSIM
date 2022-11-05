@@ -156,8 +156,8 @@ class triggers:
 
             # Advance next order data
             current_time = self.initial_time + timedelta(seconds=self.env.now)
-            if current_time == next_time:
-                while self.current_row < self.total_order and current_time == next_time:
+            if current_time >= next_time:
+                while self.current_row < self.total_order and current_time >= next_time:
                     self.add_order_to_op()
                     self.current_row += 1
                     next_time = self.created_time[min(self.current_row+1, self.total_order-1)]
