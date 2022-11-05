@@ -82,7 +82,7 @@ def order_stream(trigger_opt, batching_opt, routing_opt, picker_number, cart_cap
         ave_picker_utility = round(trigger.completion_time/(timedelta(hours=8)*picker_number), 2)
         average_picker_utility.append(ave_picker_utility)
         # Listing total on time delivery
-        total_tardy_order.append(trigger.tardy_order)
+        total_tardy_order.append(trigger.tardy_order + len(trigger.current_pool[0][2]))
         # Listing Total Lateness
         total_lateness.append(round(trigger.total_lateness.total_seconds()/60, 2))
         # Listing Total Batches Processed
