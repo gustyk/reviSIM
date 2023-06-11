@@ -2,13 +2,12 @@ import time
 import simpy
 import pandas as pd
 import random
+import itertools
 from datetime import timedelta
 from modules import general_function as gf
-
-from modules import pooling_triggers
 from modules import triggers
 from modules import batchings
-from modules import routings
+from modules import Routings
 # Reading order file
 fname = gf.reading_file()
 
@@ -44,13 +43,12 @@ total_batches = list()
 time_limit = timedelta(hours=8).seconds
 
 def order_stream(trigger_opt, batching_opt, routing_opt, picker_number, cart_capacity):
-    fn_idx = 1
-    for fn in fname:    
+    for fn_idx, fn in enumerate(fname, start=1):
         env = simpy.Environment()
         picker_pool = simpy.Resource(env, capacity=picker_number)
-        routing = routings.routings(routing_opt)
+        routing = Routings.Routings(routing_opt)
         batching = batchings.batchings(batching_opt, cart_capacity, routing, urgent_threshold)
-        trigger = triggers.triggers(env, picker_pool, batching, routing, cart_capacity, urgent_threshold)
+        trigger = triggers.Triggers(env, picker_pool, batching, routing, cart_capacity, urgent_threshold)
 
         trigger.prepare(fn)
 
@@ -111,13 +109,11 @@ def order_stream(trigger_opt, batching_opt, routing_opt, picker_number, cart_cap
         picker_list.append(picker_number)
         cart_list.append(cart_capacity)
 
-        fn_idx += 1
-
         if (trigger.print_io_station):
             dfIoS = pd.DataFrame(trigger.print_ioStation, columns =['TriggerID', 'OrderIDs', 'BatchID', 'OrderCount', 'StartingTime', 'FinishingTime'])
             pd.set_option('display.max_rows', None)
-            print('IoStation Content')
-            print(dfIoS)
+         #   print('IoStation Content')
+         #   print(dfIoS)
 
 def result_generator():
     trigger_opts = [1,2,3,4,5,6]
@@ -126,22 +122,15 @@ def result_generator():
     picker_numbers = [1,2,3,4,5,6,7,8,9,10,11,12]
     cart_opts = [1,2,3]
 
-    for trigger_opt in trigger_opts:
-        for batching_opt in batching_opts:
-            for routing_opt in routing_opts:
-                for picker_number in picker_numbers:
-                    for cart_opt in cart_opts:
-                        cart_capacity = 0
-                        if cart_opt == 1:
-                            cart_capacity = 50
-                        elif cart_opt == 2:
-                            cart_capacity = 100
-                        elif cart_opt == 3:
-                            cart_capacity = 200
+   
+    combinations = itertools.product(trigger_opts, batching_opts, routing_opts, picker_numbers, cart_opts)
 
-                        print('Processing rules %d-%d-%d-%d-%d' % (trigger_opt, batching_opt, routing_opt, picker_number, cart_opt))
-                        order_stream(trigger_opt, batching_opt, routing_opt, picker_number, cart_capacity)
-    
+    for trigger_opt, batching_opt, routing_opt, picker_number, cart_opt in combinations:
+        cart_capacity_map = {1: 50, 2: 100, 3: 200}
+        cart_capacity = cart_capacity_map[cart_opt]
+        print(f'Processing rules {trigger_opt}-{batching_opt}-{routing_opt}-{picker_number}-{cart_opt}')
+        order_stream(trigger_opt, batching_opt, routing_opt, picker_number, cart_capacity)
+                            
     # Put result on file
     result = pd.DataFrame({
         'OrderFile': order_file,
@@ -163,7 +152,9 @@ def result_generator():
         'TotalLateness': total_lateness,
         'AvgLateness': average_lateness
         }, columns = ['OrderFile','TriggerMethod','BatchingMethod','RoutingPolicy','NumOfPickers','CartCapacity','TotalOrder','TotalBatch','CompletionTime','AvgCompletionTime','TurnOverTime', 'AvgTurnOverTime','TotalItemPicked','AvgPickerUtil','AvgCartUtil','NumOfLate','TotalLateness','AvgLateness'])
-    result.to_csv('result/All.csv')
+    result.to_csv('AllTest2.csv')
     print('All.csv')
-
+komputasi_mulai = time.time()
 result_generator()
+komputasi_selesai = time.time()
+print(f'Waktu komputasi: {komputasi_selesai - komputasi_mulai} detik')

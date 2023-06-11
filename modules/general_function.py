@@ -1,132 +1,95 @@
-# Import libraries
 import math
-from sys import exit
 import os
 import re
-import numpy as np
-import pandas as pd
 from datetime import timedelta
 
-# Reading order file
+import numpy as np
+import pandas as pd
+import statistics
+
+
 def reading_file():
     file_list = os.listdir('orderFile')
-    fname = list()
+    fname = []
+
     for file in file_list:
         try:
-            fn = pd.read_csv(
-                'orderFile/' + file,
-                index_col = 0,
-                )
+            fn = pd.read_csv('orderFile/' + file, index_col=0)
         except:
             print('File cannot be opened!')
             exit()
+
         fn['Created Time'] = pd.to_datetime(fn['Created Time'])
-        createdTime = fn['Created Time'].to_list()
-        dueTime = pd.to_datetime(fn['Due Time']).to_list()
-        b = 0
-        while b < len(dueTime):
-            if dueTime[b] <= createdTime[b]:
-                dueTime[b] += timedelta(days = 1)
-            b += 1
-        fn['Due Time'] = dueTime
-        pos = fn['Order List'].to_list()
-        b = 0
-        mismatch_qty_idx = list()
-        while b < len(pos):
-            pos[b] = string_to_list(pos[b])
-            total_qty = sum(int(qty) for _, qty in pos[b])
-            if total_qty != fn['Total Item'][b]:
-                mismatch_qty_idx.append(b)
-                b += 1
-                continue
-            pos[b] = collect_position(pos[b])
-            pos[b] = sort_position(pos[b])
-            b += 1
-        if len(mismatch_qty_idx) > 0:
-            print('Mismatch Qty and Total Item Dropped')
-            print(fn.iloc[mismatch_qty_idx])
-            fn.drop(index=fn.iloc[mismatch_qty_idx].index.tolist(), inplace=True)
-            pos = [i for j, i in enumerate(pos) if j not in mismatch_qty_idx]
+        created_time = fn['Created Time'].tolist()
+        due_time = pd.to_datetime(fn['Due Time']).tolist()
+        due_time = [dt + timedelta(days=int(dt <= ct)) for dt, ct in zip(due_time, created_time)]
+        fn['Due Time'] = due_time
+
+        pos = fn['Order List'].tolist()
+        mismatch_qty_idx = [i for i, p in enumerate(pos) if sum(int(qty) for _, qty in string_to_list(p)) != fn['Total Item'][i]]
+        pos = [sort_position(collect_position(string_to_list(p))) for i, p in enumerate(pos) if i not in mismatch_qty_idx]
+        fn = fn.drop(index=fn.index[mismatch_qty_idx])
         fn['Position'] = pos
-        fn.drop('Order List', axis=1, inplace=True)
+        fn = fn.drop('Order List', axis=1)
+
         fname.append(fn)
+
     return fname
 
-# Changing string of order to list
-def string_to_list(string):
-    string = string[1:-1]
-    string = re.findall('\(.+?\)', string)
-    i = 0
-    while i < len(string):
-        string[i] = re.findall('[0-9]+', string[i])
-        i += 1
-    return string
 
-# Convert position
+def string_to_list(string):
+    return [[int(qty) for qty in re.findall('[0-9]+', pos)] for pos in re.findall('\(.+?\)', string)]
+
+
 def position(pos):
     pos1 = (int(pos) - 1) // 32 + 1
     pos2a = math.ceil(((int(pos) % 32) / 2))
-    if pos2a == 0:
-        pos2 = 16
-    else:
-        pos2 = pos2a
+    pos2 = 16 if pos2a == 0 else pos2a
     return [pos1, [pos2]]
 
-# Collecting position from list
+
 def collect_position(filelist):
-    newlist = list()
-    for pos in filelist:
-        newlist.append(position(pos[0]))
-    newlist.sort()
-    return newlist
+    return sorted([position(pos[0]) for pos in filelist])
 
-# Sorting position
+
 def sort_position(filelist):
-    newlist = list()
-    aisle = list()
-    for num in filelist:
-        if not (num[0] in aisle):
-            newlist.append(num)
-            aisle.append(num[0])
+    aisle_dict = {}
+    
+    for pos in filelist:
+        aisle_num = pos[0]
+        if aisle_num not in aisle_dict:
+            aisle_dict[aisle_num] = set(pos[1])
         else:
-            i=aisle.index(num[0])
-            newlist[i][1].append(num[1][0])
-    for num in newlist:
-        num[1] = set(num[1])
-        num[1] = sorted(num[1])
-    newlist.sort()
+            aisle_dict[aisle_num].update(pos[1])
+
+    sorted_aisles = sorted(aisle_dict.items())
+    newlist = []
+
+    for aisle_num, positions in sorted_aisles:
+        newlist.append([aisle_num, sorted(positions)])
+
     return newlist
 
-# Counting average of list
+
 def count_average(filelist):
-    avg = round(sum(filelist)/len(filelist), 2)
-    filelist.append(avg)
-    return filelist
+    return round(statistics.mean(filelist), 2)
 
-# Counting total order
+
 def count_total_order(filelist):
-    totalOrder = list()
-    for fn in filelist:
-        orderList = fn['Total Item'].to_list()
-        totalOrder.append(len(orderList))
-    totalOrder = count_average(totalOrder)
-    return totalOrder
+    return len([fn['Total Item'].to_list() for fn in filelist])
 
-# Counting total item picked
+
 def count_total_item(filelist):
-    totalItemPicked = list()
-    for fn in filelist:
-        orderList = fn['Total Item'].to_list()
-        totalItemPicked.append(sum(orderList))
-    totalItemPicked = count_average(totalItemPicked)
-    return totalItemPicked
+    return sum([sum(fn['Total Item'].to_list()) for fn in filelist])
 
-# Counting average of total completion time
+
 def average_tct(totalCompletionTime):
-    sumTct = timedelta(seconds=0)
-    for tct in totalCompletionTime:
-        sumTct += tct
+    if not totalCompletionTime:
+        return [timedelta(seconds=0)]
+
+    sumTct = sum(totalCompletionTime, timedelta(seconds=0))
     lenTct = len(totalCompletionTime)
-    aveTct = sumTct/lenTct
+    aveTct = sumTct / lenTct
+
     totalCompletionTime.append(aveTct)
     return totalCompletionTime

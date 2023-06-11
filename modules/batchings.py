@@ -1,4 +1,6 @@
-from modules import general_function as gf
+import sys
+sys.path.append('d:\coding\copilot\wh_opt\modules')
+import general_function as gf
 import numpy as np
 from datetime import timedelta
 
